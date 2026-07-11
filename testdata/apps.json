@@ -1,0 +1,92 @@
+{
+  "settings": {
+    "provider_priority": ["brew", "flatpak", "snap", "apt", "dnf", "pacman", "termux"]
+  },
+  "bundles": {
+    "discord": {
+      "tags": ["default"],
+      "providers": {
+        "flatpak": {"packages": ["com.discordapp.Discord"]},
+        "brew": {"packages": [{"name": "discord", "extra_params": ["--cask"]}]}
+      }
+    },
+    "ffmpeg": {
+      "tags": ["default", "phone"],
+      "providers": {
+        "apt": {"packages": ["ffmpeg"]},
+        "dnf": {"packages": ["ffmpeg"]},
+        "pacman": {"packages": ["ffmpeg"]},
+        "brew": {"packages": ["ffmpeg"]},
+        "termux": {"packages": ["ffmpeg"]}
+      }
+    },
+    "k8slens": {
+      "tags": ["default"],
+      "providers": {
+        "snap": {"packages": [{"name": "kontena-lens", "extra_params": ["--classic"]}]},
+        "brew": {"packages": [{"name": "lens", "extra_params": ["--cask"]}]}
+      }
+    },
+    "keepassxc": {
+      "tags": ["default"],
+      "providers": {
+        "flatpak": {"packages": ["org.keepassxc.KeePassXC"]},
+        "brew": {"packages": [{"name": "keepassxc", "extra_params": ["--cask"]}]}
+      }
+    },
+    "code": {
+      "tags": ["default"],
+      "providers": {
+        "apt": {
+          "repositories": [
+            {
+              "source": "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main\n",
+              "key_url": "https://packages.microsoft.com/keys/microsoft.asc",
+              "keyring": "packages.microsoft.gpg",
+              "type": "list"
+            }
+          ],
+          "packages": ["code"]
+        },
+        "dnf": {
+          "repositories": [
+            {
+              "source": "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc\n",
+              "keyring": "vscode.repo",
+              "type": "repo"
+            }
+          ],
+          "packages": ["code"]
+        },
+        "brew": {"packages": [{"name": "visual-studio-code", "extra_params": ["--cask"]}]}
+      }
+    },
+    "cursor": {
+      "tags": ["default"],
+      "providers": {
+        "apt": {
+          "repositories": [
+            {
+              "source": "Types: deb\nURIs: https://downloads.cursor.com/aptrepo\nSuites: stable\nComponents: main\nArchitectures: amd64 arm64\nSigned-By: /etc/apt/keyrings/anysphere.gpg\n",
+              "key_url": "https://downloads.cursor.com/keys/anysphere.asc",
+              "keyring": "anysphere.gpg",
+              "type": "deb822"
+            }
+          ],
+          "packages": ["cursor"]
+        },
+        "dnf": {
+          "repositories": [
+            {
+              "source": "[cursor]\nname=Cursor\nbaseurl=https://downloads.cursor.com/yumrepo\nenabled=1\ngpgcheck=1\ngpgkey=https://downloads.cursor.com/keys/anysphere.asc\n",
+              "keyring": "cursor.repo",
+              "type": "repo"
+            }
+          ],
+          "packages": ["cursor"]
+        },
+        "brew": {"packages": [{"name": "cursor", "extra_params": ["--cask"]}]}
+      }
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "settings": {
+    "provider_priority": ["brew", "apt", "dnf", "pacman", "termux"]
+  },
+  "bundles": {
+    "git": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["git"]},
+        "dnf": {"packages": ["git"]},
+        "pacman": {"packages": ["git"]},
+        "brew": {"packages": ["git"]},
+        "termux": {"packages": ["git"]}
+      }
+    },
+    "zsh": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["zsh"]},
+        "dnf": {"packages": ["zsh"]},
+        "pacman": {"packages": ["zsh"]},
+        "brew": {"packages": ["zsh"]},
+        "termux": {"packages": ["zsh"]}
+      }
+    },
+    "curl": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["curl"]},
+        "dnf": {"packages": ["curl"]},
+        "pacman": {"packages": ["curl"]},
+        "brew": {"packages": ["curl"]},
+        "termux": {"packages": ["curl"]}
+      }
+    },
+    "gcc": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["gcc"]},
+        "dnf": {"packages": ["gcc"]},
+        "pacman": {"packages": ["gcc"]},
+        "brew": {"packages": ["gcc"]},
+        "termux": {"packages": ["clang"]}
+      }
+    },
+    "make": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["make"]},
+        "dnf": {"packages": ["make"]},
+        "pacman": {"packages": ["make"]},
+        "brew": {"packages": ["make"]},
+        "termux": {"packages": ["make"]}
+      }
+    },
+    "ca-certificates": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {"packages": ["ca-certificates"]},
+        "dnf": {"packages": ["ca-certificates"]},
+        "pacman": {"packages": ["ca-certificates"]}
+      }
+    },
+    "gnupg": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["gnupg2"]},
+        "dnf": {"packages": ["gnupg2"]},
+        "brew": {"packages": ["gnupg"]},
+        "termux": {"packages": ["gnupg"]}
+      }
+    },
+    "libatomic": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {"packages": ["libatomic1"]},
+        "dnf": {"packages": ["libatomic"]},
+        "pacman": {"packages": ["gcc-libs"]}
+      }
+    },
+    "openssl": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["openssl"]},
+        "dnf": {"packages": ["openssl"]},
+        "brew": {"packages": ["openssl"]},
+        "termux": {"packages": ["openssl"]}
+      }
+    },
+    "pkg-config": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["pkg-config"]},
+        "dnf": {"packages": ["pkgconf-pkg-config"]},
+        "brew": {"packages": ["pkg-config"]},
+        "termux": {"packages": ["pkg-config"]}
+      }
+    },
+    "unzip": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["unzip"]},
+        "dnf": {"packages": ["unzip"]},
+        "brew": {"packages": ["unzip"]},
+        "termux": {"packages": ["unzip"]}
+      }
+    },
+    "secret-tool": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {"packages": ["libsecret-tools"]},
+        "dnf": {"packages": ["libsecret"]}
+      }
+    },
+    "bc": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["bc"]},
+        "dnf": {"packages": ["bc"]},
+        "pacman": {"packages": ["bc"]},
+        "brew": {"packages": ["bc"]},
+        "termux": {"packages": ["bc"]}
+      }
+    },
+    "dialog": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["dialog"]},
+        "dnf": {"packages": ["dialog"]},
+        "pacman": {"packages": ["dialog"]},
+        "brew": {"packages": ["dialog"]},
+        "termux": {"packages": ["dialog"]}
+      }
+    },
+    "dnf-plugins-core": {
+      "tags": ["default", "work"],
+      "providers": {
+        "dnf": {"packages": ["dnf-plugins-core"]}
+      }
+    }
+  }
+}

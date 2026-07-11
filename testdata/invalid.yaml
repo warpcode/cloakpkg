@@ -1,0 +1,4 @@
+settings:
+  provider_priority: [brew, apt
+bundles:
+  mismatched_yaml: : : :

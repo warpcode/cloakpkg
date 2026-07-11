@@ -1,0 +1,130 @@
+{
+  "settings": {
+    "provider_priority": [
+      "mise",
+      "npm"
+    ]
+  },
+  "bundles": {
+    "ollama": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "mise": {
+          "packages": [
+            "ollama"
+          ]
+        }
+      }
+    },
+    "ai_skills": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "skills@latest"
+          ]
+        }
+      }
+    },
+    "copilot-cli": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@github/copilot"
+          ]
+        }
+      }
+    },
+    "gemini-cli": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@google/gemini-cli"
+          ]
+        }
+      }
+    },
+    "opencode": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "opencode-ai@latest"
+          ]
+        }
+      }
+    },
+    "kilo": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@kilocode/cli"
+          ]
+        }
+      }
+    },
+    "pi": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@mariozechner/pi-coding-agent"
+          ]
+        }
+      }
+    },
+    "qwen": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@qwen-code/qwen-code@latest"
+          ]
+        }
+      }
+    },
+    "codex": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@openai/codex"
+          ]
+        }
+      }
+    },
+    "claude": {
+      "tags": [
+        "default"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            "@anthropic-ai/claude-code"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "settings": {
+    "provider_priority": ["mise", "npm", "brew", "apt", "dnf", "pacman"]
+  },
+  "bundles": {
+    "python3": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": [{"name": "python", "version": "3.12"}]}
+      }
+    },
+    "node": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": [{"name": "node", "version": "latest"}]}
+      }
+    },
+    "rust": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["rust"]}
+      }
+    },
+    "go": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["go"]}
+      }
+    },
+    "deno": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["deno"]}
+      }
+    },
+    "php": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {"packages": ["php-cli"]},
+        "dnf": {"packages": ["php-cli"]},
+        "pacman": {"packages": ["php"]},
+        "brew": {"packages": ["php"]}
+      }
+    },
+    "prettier": {
+      "tags": ["default", "work"],
+      "providers": {
+        "npm": {"packages": ["prettier"]}
+      }
+    },
+    "eslint": {
+      "tags": ["default", "work"],
+      "providers": {
+        "npm": {"packages": ["eslint"]}
+      }
+    },
+    "typescript-language-server": {
+      "tags": ["default", "work"],
+      "providers": {
+        "npm": {"packages": ["typescript-language-server"]}
+      }
+    }
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "settings": {
+    "provider_priority": [
+      "mise",
+      "npm",
+      "brew",
+      "apt",
+      "custom"
+    ]
+  },
+  "bundles": {
+    "lazygit": {
+      "description": "Terminal UI for git",
+      "tags": [
+        "core",
+        "cli"
+      ],
+      "providers": {
+        "apt": {
+          "packages": [
+            {
+              "name": "lazygit"
+            }
+          ]
+        },
+        "brew": {
+          "repositories": [
+            "jesseduffield/lazygit"
+          ],
+          "packages": [
+            {
+              "name": "lazygit"
+            }
+          ]
+        },
+        "mise": {
+          "packages": [
+            {
+              "name": "lazygit"
+            }
+          ]
+        },
+        "custom": {
+          "detect": "command -v lazygit",
+          "install": "echo 'Installing lazygit custom script'"
+        }
+      }
+    },
+    "git": {
+      "description": "Distributed version control system",
+      "tags": [
+        "core",
+        "development"
+      ],
+      "providers": {
+        "brew": {
+          "packages": [
+            {
+              "name": "git",
+              "extra_params": [
+                "--formula"
+              ]
+            }
+          ]
+        },
+        "apt": {
+          "repositories": [
+            "ppa:git-core/ppa"
+          ],
+          "packages": [
+            {
+              "name": "git"
+            }
+          ]
+        }
+      }
+    },
+    "tmux": {
+      "description": "Terminal multiplexer",
+      "tags": [
+        "core",
+        "cli"
+      ],
+      "providers": {
+        "brew": {
+          "packages": [
+            {
+              "name": "tmux",
+              "extra_params": [
+                "--formula"
+              ]
+            }
+          ]
+        },
+        "apt": {
+          "packages": [
+            {
+              "name": "tmux"
+            }
+          ]
+        }
+      }
+    },
+    "htop": {
+      "description": "Interactive process viewer",
+      "tags": [
+        "extra",
+        "cli"
+      ],
+      "providers": {
+        "brew": {
+          "packages": [
+            {
+              "name": "htop"
+            }
+          ]
+        },
+        "apt": {
+          "packages": [
+            {
+              "name": "htop"
+            }
+          ]
+        }
+      }
+    },
+    "neovim": {
+      "description": "Vim-fork focused on extensibility and usability",
+      "tags": [
+        "core",
+        "editor"
+      ],
+      "providers": {
+        "brew": {
+          "packages": [
+            {
+              "name": "neovim"
+            }
+          ]
+        },
+        "apt": {
+          "packages": [
+            {
+              "name": "neovim"
+            }
+          ]
+        }
+      }
+    },
+    "eslint": {
+      "description": "Pluggable JavaScript linter",
+      "tags": [
+        "web",
+        "development"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            {
+              "name": "eslint",
+              "extra_params": [
+                "--save-dev"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "prettier": {
+      "description": "Opinionated code formatter",
+      "tags": [
+        "web",
+        "development"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            {
+              "name": "prettier",
+              "extra_params": [
+                "--save-dev"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "typescript": {
+      "description": "TypeScript language compiler",
+      "tags": [
+        "web",
+        "development"
+      ],
+      "providers": {
+        "npm": {
+          "packages": [
+            {
+              "name": "typescript"
+            }
+          ]
+        }
+      }
+    },
+    "zsh-config": {
+      "description": "Custom Zsh shell configurations and settings",
+      "tags": [
+        "shell",
+        "config"
+      ],
+      "providers": {
+        "custom": {
+          "detect": "[ -f ~/.zshrc ]",
+          "install": "echo 'Installing standard Zsh profiles'",
+          "uninstall": "echo 'Removing Zsh configurations'"
+        }
+      }
+    }
+  }
+}

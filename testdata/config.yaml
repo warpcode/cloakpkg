@@ -1,0 +1,46 @@
+settings:
+  provider_priority: [brew, apt, custom]
+
+bundles:
+  lazygit:
+    description: "Terminal UI for git"
+    tags: [core, cli]
+    providers:
+      apt:
+        packages:
+          - name: lazygit
+      brew:
+        packages:
+          - name: lazygit
+      custom:
+        detect: "command -v lazygit"
+        install: "echo 'Installing lazygit custom script'"
+
+  docker:
+    description: "Container runtime"
+    tags: [core, infra]
+    providers:
+      apt:
+        packages:
+          - name: docker-ce
+          - name: docker-ce-cli
+          - name: containerd.io
+          - name: docker-buildx-plugin
+          - name: docker-compose-plugin
+      brew:
+        packages:
+          - name: docker
+            extra_params: ["--cask"]
+      snap:
+        packages:
+          - name: docker
+
+  mise:
+    description: "Developer environment manager"
+    tags: [dev]
+    providers:
+      custom:
+        detect: "command -v mise"
+        install: "curl -fsSL https://mise.run | sh"
+        update: "mise self-update"
+        uninstall: "rm -rf ~/.local/share/mise ~/.local/bin/mise"

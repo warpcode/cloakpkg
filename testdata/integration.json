@@ -1,0 +1,62 @@
+{
+  "settings": {
+    "provider_priority": ["brew", "apt", "dnf", "pacman"]
+  },
+  "bundles": {
+    "flatpak": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {"packages": ["flatpak"]},
+        "dnf": {"packages": ["flatpak"]},
+        "pacman": {"packages": ["flatpak"]}
+      }
+    },
+    "docker": {
+      "tags": ["default", "work"],
+      "providers": {
+        "apt": {
+          "repositories": [
+            {
+              "source": "deb [arch=${arch} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/${distro} ${version_codename} stable\n",
+              "key_url": "https://download.docker.com/linux/${distro}/gpg",
+              "keyring": "docker.asc",
+              "type": "list"
+            }
+          ],
+          "packages": [
+            "docker-ce",
+            "docker-ce-cli",
+            "containerd.io",
+            "docker-buildx-plugin",
+            "docker-compose-plugin"
+          ]
+        },
+        "dnf": {
+          "repositories": [
+            {
+              "source": "https://download.docker.com/linux/fedora/docker-ce.repo"
+            }
+          ],
+          "packages": [
+            "docker-ce",
+            "docker-ce-cli",
+            "containerd.io",
+            "docker-buildx-plugin",
+            "docker-compose-plugin"
+          ]
+        },
+        "pacman": {
+          "packages": [
+            "docker",
+            "docker-compose"
+          ]
+        },
+        "brew": {
+          "packages": [
+            {"name": "docker-desktop", "extra_params": ["--cask"]}
+          ]
+        }
+      }
+    }
+  }
+}

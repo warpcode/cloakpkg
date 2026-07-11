@@ -1,0 +1,100 @@
+{
+  "settings": {
+    "provider_priority": ["mise", "brew", "apt", "dnf", "pacman", "termux"]
+  },
+  "bundles": {
+    "openssh": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["openssh-client"]},
+        "dnf": {"packages": ["openssh-clients"]},
+        "pacman": {"packages": ["openssh"]},
+        "termux": {"packages": ["openssh"]}
+      }
+    },
+    "tmux": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["tmux"]},
+        "dnf": {"packages": ["tmux"]},
+        "pacman": {"packages": ["tmux"]},
+        "brew": {"packages": ["tmux"]},
+        "termux": {"packages": ["tmux"]}
+      }
+    },
+    "screen": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["screen"]},
+        "dnf": {"packages": ["screen"]},
+        "pacman": {"packages": ["screen"]},
+        "brew": {"packages": ["screen"]},
+        "termux": {"packages": ["screen"]}
+      }
+    },
+    "rsync": {
+      "tags": ["default", "work", "phone"],
+      "providers": {
+        "apt": {"packages": ["rsync"]},
+        "dnf": {"packages": ["rsync"]},
+        "pacman": {"packages": ["rsync"]},
+        "brew": {"packages": ["rsync"]},
+        "termux": {"packages": ["rsync"]}
+      }
+    },
+    "jq": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["jq"]}
+      }
+    },
+    "yq": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["yq"]}
+      }
+    },
+    "fzf": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["fzf"]}
+      }
+    },
+    "bat": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["bat"]}
+      }
+    },
+    "gomplate": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["gomplate"]}
+      }
+    },
+    "gh": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["gh"]}
+      }
+    },
+    "lazygit": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["lazygit"]}
+      }
+    },
+    "neovim": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": [{"name": "neovim", "version": "0.11.6"}]}
+      }
+    },
+    "uv": {
+      "tags": ["default", "work"],
+      "providers": {
+        "mise": {"packages": ["uv"]}
+      }
+    }
+  }
+}
