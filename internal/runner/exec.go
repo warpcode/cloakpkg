@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 )
 
 // CommandExists checks if a binary is available in the user's PATH.
@@ -25,14 +24,9 @@ var DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 	return cmd.Run()
 }
 
-// DefaultShellExecutor runs a command string via /bin/sh (or cmd /C on Windows).
+// DefaultShellExecutor runs a command string via /bin/sh. Expose as a variable to allow mocking.
 var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", cmdStr)
-	} else {
-		cmd = exec.Command("/bin/sh", "-c", cmdStr)
-	}
+	cmd := exec.Command("/bin/sh", "-c", cmdStr)
 	if verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -42,14 +36,9 @@ var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
 	return cmd.Run()
 }
 
-// DefaultShellCheckExecutor runs a check command silently.
+// DefaultShellCheckExecutor runs a check command silently. Expose as a variable to allow mocking.
 var DefaultShellCheckExecutor = func(cmdStr string) error {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/C", cmdStr)
-	} else {
-		cmd = exec.Command("/bin/sh", "-c", cmdStr)
-	}
+	cmd := exec.Command("/bin/sh", "-c", cmdStr)
 	return cmd.Run()
 }
 
@@ -80,14 +69,10 @@ func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
 	return Run(verbose, dryRun, "sudo", sudoArgs...)
 }
 
-// RunShell runs a custom script/command string.
+// RunShell runs a custom script/command string via /bin/sh.
 func RunShell(verbose bool, dryRun bool, cmdStr string) error {
 	if dryRun {
-		shell := "/bin/sh -c"
-		if runtime.GOOS == "windows" {
-			shell = "cmd /C"
-		}
-		fmt.Printf("[dry-run] %s %q\n", shell, cmdStr)
+		fmt.Printf("[dry-run] /bin/sh -c %q\n", cmdStr)
 		return nil
 	}
 

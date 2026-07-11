@@ -72,17 +72,17 @@ func TestMatchTags(t *testing.T) {
 }
 
 func TestBundleCommandLifecycle(t *testing.T) {
-	// Mock environment
+	// Mock executor & exists
 	origExecutor := runner.DefaultExecutor
 	origShellExecutor := runner.DefaultShellExecutor
-	origShellCheck := runner.DefaultShellCheckExecutor
+	origShellCheckExecutor := runner.DefaultShellCheckExecutor
 	origExists := runner.CommandExists
 	origCheck := runner.DefaultCheckExecutor
 	origCheckOutput := runner.DefaultCheckOutputExecutor
 	defer func() {
 		runner.DefaultExecutor = origExecutor
 		runner.DefaultShellExecutor = origShellExecutor
-		runner.DefaultShellCheckExecutor = origShellCheck
+		runner.DefaultShellCheckExecutor = origShellCheckExecutor
 		runner.CommandExists = origExists
 		runner.DefaultCheckExecutor = origCheck
 		runner.DefaultCheckOutputExecutor = origCheckOutput
@@ -99,18 +99,22 @@ func TestBundleCommandLifecycle(t *testing.T) {
 	}
 	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
 		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
-		return os.ErrNotExist
+		return os.ErrNotExist // Mock detect failed
 	}
 	runner.CommandExists = func(name string) bool {
+		// Mock npm, brew, and apt as available
 		return name == "npm" || name == "brew" || name == "apt-get"
 	}
 	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		// Mock packages as not installed so they get installed
 		return os.ErrNotExist
 	}
 	runner.DefaultCheckOutputExecutor = func(bin string, args ...string) ([]byte, error) {
+		// Mock that no Homebrew taps are added
 		return []byte(""), nil
 	}
 
+	// Write a temp config file representing multi-bundle, multi-installer setup
 	tmpDir, err := os.MkdirTemp("", "cloakpkg-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -127,7 +131,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 				"tags": ["core"],
 				"providers": {
 					"brew": {
-						"repositories": [{"source": "jesseduffield/lazygit"}],
+						"repositories": ["jesseduffield/lazygit"],
 						"packages": [{"name": "git", "extra_params": ["--formula"]}]
 					},
 					"apt": {
@@ -139,7 +143,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 				"tags": ["core"],
 				"providers": {
 					"brew": {
-						"repositories": [{"source": "jesseduffield/lazygit"}],
+						"repositories": ["jesseduffield/lazygit"],
 						"packages": [{"name": "tmux", "extra_params": ["--formula"]}]
 					},
 					"apt": {
@@ -202,40 +206,143 @@ func TestBundleCommandLifecycle(t *testing.T) {
 		t.Fatalf("Failed to write temp config: %v", err)
 	}
 
+	// Override command args flag to simulate running with "-t core" (only include core tags)
+	// We call runBundleCommand directly but we need to pass the tags flag.
+	// Since runBundleCommand parses os.Args[3:], we can override os.Args!
 	origArgs := os.Args
 	defer func() { os.Args = origArgs }()
+
+	// Simulate command line: cloakpkg install <config> -t core
 	os.Args = []string{"cloakpkg", "install", configPath, "-t", "core"}
 
 	runBundleCommand("install", configPath)
 
-	if findCommand(executedCmds, "npm", "install", "-g", "eslint", "prettier") == nil {
-		t.Errorf("Missing collated npm command for eslint and prettier")
+	// Since tag is "core", we expect:
+	// 1. htop (tag "extra") is skipped
+	// 2. npm packages are executed first (npm is first in priority order).
+	//    - eslint and prettier are collated (same params: ["--save-dev"]) -> "npm install -g --save-dev eslint prettier"
+	//    - typescript has no params -> "npm install -g typescript"
+	// 3. brew packages are executed second:
+	//    - git and tmux are collated -> "brew install --formula git tmux"
+	// 4. apt packages are executed third:
+	//    - neovim -> "apt-get install -y neovim"
+	// 5. custom installer is executed last:
+	//    - dotfiles -> Custom setup script executes
+
+	// We expect 5 total commands executed (4 built-in collated commands + 1 custom script check/install)
+	// Let's assert they ran in the correct sequence.
+	if len(executedCmds) < 4 {
+		t.Fatalf("Expected at least 4 commands executed, got %d: %v", len(executedCmds), executedCmds)
 	}
 
-	if findCommand(executedCmds, "npm", "install", "-g", "typescript") == nil {
-		t.Errorf("Missing npm command for typescript")
+	// Find commands by binary name
+	var npmCmds, brewCmds, aptCmds, customCmds [][]string
+	for _, cmd := range executedCmds {
+		cleanCmd := stripSudo(cmd)
+		switch cleanCmd[0] {
+		case "npm":
+			npmCmds = append(npmCmds, cleanCmd)
+		case "brew":
+			brewCmds = append(brewCmds, cleanCmd)
+		case "apt-get":
+			aptCmds = append(aptCmds, cleanCmd)
+		case "/bin/sh":
+			customCmds = append(customCmds, cleanCmd)
+		}
 	}
 
-	if findCommand(executedCmds, "brew", "tap", "jesseduffield/lazygit") == nil {
-		t.Errorf("Missing brew tap command")
+	// 1. Verify NPM collation and execution
+	if len(npmCmds) != 2 {
+		t.Errorf("Expected exactly 2 npm commands (collated by extra params), got %d: %v", len(npmCmds), npmCmds)
+	} else {
+		// One npm command should contain eslint and prettier, the other typescript
+		var hasCollatedNpm, hasSingleNpm bool
+		for _, cmd := range npmCmds {
+			if len(cmd) >= 6 && cmd[1] == "install" && cmd[2] == "-g" && cmd[3] == "--save-dev" {
+				hasEslint := false
+				hasPrettier := false
+				for _, arg := range cmd[4:] {
+					if arg == "eslint" {
+						hasEslint = true
+					}
+					if arg == "prettier" {
+						hasPrettier = true
+					}
+				}
+				if hasEslint && hasPrettier {
+					hasCollatedNpm = true
+				}
+			}
+			if len(cmd) == 4 && cmd[1] == "install" && cmd[2] == "-g" && cmd[3] == "typescript" {
+				hasSingleNpm = true
+			}
+		}
+		if !hasCollatedNpm {
+			t.Errorf("Missing collated npm command for eslint and prettier in %v", npmCmds)
+		}
+		if !hasSingleNpm {
+			t.Errorf("Missing single npm command for typescript in %v", npmCmds)
+		}
 	}
 
-	if findCommand(executedCmds, "brew", "install", "--formula", "git", "tmux") == nil {
-		t.Errorf("Missing collated brew install command for git and tmux")
+	// 2. Verify Brew collation
+	if len(brewCmds) != 2 {
+		t.Errorf("Expected exactly 2 brew commands (1 tap, 1 install), got %d: %v", len(brewCmds), brewCmds)
+	} else {
+		// Verify tap command
+		tapCmd := brewCmds[0]
+		if tapCmd[1] != "tap" || tapCmd[2] != "jesseduffield/lazygit" {
+			t.Errorf("Unexpected brew tap command: %v", tapCmd)
+		}
+
+		// Verify install command
+		installCmd := brewCmds[1]
+		if installCmd[1] != "install" || installCmd[2] != "--formula" {
+			t.Errorf("Unexpected brew install command structure: %v", installCmd)
+		}
+		hasGit := false
+		hasTmux := false
+		for _, arg := range installCmd[3:] {
+			if arg == "git" {
+				hasGit = true
+			}
+			if arg == "tmux" {
+				hasTmux = true
+			}
+		}
+		if !hasGit || !hasTmux {
+			t.Errorf("Brew install command missing git or tmux: %v", installCmd)
+		}
 	}
 
-	if findCommand(executedCmds, "apt-get", "install", "neovim") == nil {
-		t.Errorf("Missing apt install command for neovim")
+	// 3. Verify Apt execution
+	if len(aptCmds) != 1 {
+		t.Errorf("Expected exactly 1 apt command, got %d: %v", len(aptCmds), aptCmds)
+	} else {
+		cmd := aptCmds[0]
+		if cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "neovim" {
+			t.Errorf("Unexpected apt command structure: %v", cmd)
+		}
 	}
 
-	if findCommand(executedCmds, "/bin/sh", "-c", "echo 'checking custom'") == nil {
-		t.Errorf("Missing custom detect command")
+	// 4. Verify Custom execution
+	if len(customCmds) != 2 {
+		t.Errorf("Expected exactly 2 custom commands (1 detect, 1 install), got %d: %v", len(customCmds), customCmds)
+	} else {
+		// First custom command is the detect check
+		detectCmd := customCmds[0]
+		if detectCmd[1] != "-c" || detectCmd[2] != "echo 'checking custom'" {
+			t.Errorf("Unexpected custom detect command: %v", detectCmd)
+		}
+
+		// Second custom command is the install
+		installCmd := customCmds[1]
+		if installCmd[1] != "-c" || installCmd[2] != "echo 'installing custom'" {
+			t.Errorf("Unexpected custom install command: %v", installCmd)
+		}
 	}
 
-	if findCommand(executedCmds, "/bin/sh", "-c", "echo 'installing custom'") == nil {
-		t.Errorf("Missing custom install command")
-	}
-
+	// 5. Verify tag filtering (htop was excluded)
 	for _, cmd := range executedCmds {
 		for _, arg := range cmd {
 			if arg == "htop" {
@@ -246,7 +353,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 }
 
 func TestBundleCommandIdempotency(t *testing.T) {
-	// Mock environment
+	// Mock executor & exists
 	origExecutor := runner.DefaultExecutor
 	origExists := runner.CommandExists
 	origCheck := runner.DefaultCheckExecutor
@@ -265,9 +372,10 @@ func TestBundleCommandIdempotency(t *testing.T) {
 		return name == "brew"
 	}
 	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		// Mock "git" as ALREADY installed (exit code 0), but "tmux" as not installed (exit code 1)
 		for _, arg := range args {
 			if arg == "git" {
-				return nil
+				return nil // success: git is already installed!
 			}
 		}
 		return os.ErrNotExist
@@ -303,20 +411,46 @@ func TestBundleCommandIdempotency(t *testing.T) {
 
 	origArgs := os.Args
 	defer func() { os.Args = origArgs }()
+
+	// Simulate command line: cloakpkg install <config>
 	os.Args = []string{"cloakpkg", "install", configPath}
 
 	runBundleCommand("install", configPath)
 
-	if findCommand(executedCmds, "brew", "install", "--formula", "tmux") == nil {
-		t.Errorf("Expected brew install command for tmux")
+	// Since "git" is already installed and "tmux" is not, we expect:
+	// - git to be skipped
+	// - Only "tmux" to be installed
+	// - Brew command should be: "brew install --formula tmux" (only tmux, no git!)
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected exactly 1 command executed, got %d: %v", len(executedCmds), executedCmds)
 	}
-	if findCommand(executedCmds, "brew", "install", "--formula", "git") != nil {
-		t.Errorf("git should not have been installed")
+
+	cmd := executedCmds[0]
+	if cmd[0] != "brew" || cmd[1] != "install" || cmd[2] != "--formula" {
+		t.Fatalf("Unexpected command structure: %v", cmd)
+	}
+
+	// Verify cmd arguments
+	hasGit := false
+	hasTmux := false
+	for _, arg := range cmd[3:] {
+		if arg == "git" {
+			hasGit = true
+		}
+		if arg == "tmux" {
+			hasTmux = true
+		}
+	}
+	if hasGit {
+		t.Errorf("Command should not contain 'git' as it was mocked as already installed: %v", cmd)
+	}
+	if !hasTmux {
+		t.Errorf("Command missing 'tmux': %v", cmd)
 	}
 }
 
 func TestBundleCommandHooks(t *testing.T) {
-	// Mock environment
 	origExecutor := runner.DefaultExecutor
 	origShellExecutor := runner.DefaultShellExecutor
 	origExists := runner.CommandExists
@@ -330,21 +464,26 @@ func TestBundleCommandHooks(t *testing.T) {
 		runner.DefaultCheckOutputExecutor = origCheckOutput
 	}()
 
+	var executedShellCmds []string
+	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
+		executedShellCmds = append(executedShellCmds, cmdStr)
+		return nil
+	}
+
 	var executedCmds [][]string
 	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 		executedCmds = append(executedCmds, append([]string{bin}, args...))
 		return nil
 	}
-	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
-		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
-		return nil
-	}
+
 	runner.CommandExists = func(name string) bool {
 		return name == "apt-get"
 	}
+
 	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
 		return os.ErrNotExist
 	}
+
 	runner.DefaultCheckOutputExecutor = func(bin string, args ...string) ([]byte, error) {
 		return []byte(""), nil
 	}
@@ -400,15 +539,48 @@ func TestBundleCommandHooks(t *testing.T) {
 
 	origArgs := os.Args
 	defer func() { os.Args = origArgs }()
-	os.Args = []string{"cloakpkg", "install", configPath}
 
+	// Let's first test install
+	os.Args = []string{"cloakpkg", "install", configPath, "flatpak"}
 	runBundleCommand("install", configPath)
 
-	expectedHooks := []string{
+	// Expected shell commands executed in order for flatpak bundle:
+	// 1. pre_install bundle: "echo 'pre-install bundle'"
+	// 2. pre_install apt: "echo 'pre-install apt'"
+	// (then apt install is run via DefaultExecutor, not DefaultShellExecutor)
+	// 3. post_install apt: "echo 'post-install apt'"
+	// 4. post_install bundle: "echo 'post-install bundle'"
+
+	expectedShellCmds := []string{
 		"echo 'pre-install bundle'",
 		"echo 'pre-install apt'",
 		"echo 'post-install apt'",
 		"echo 'post-install bundle'",
+	}
+
+	if len(executedShellCmds) != len(expectedShellCmds) {
+		t.Fatalf("Expected %d shell commands, got %d: %v", len(expectedShellCmds), len(executedShellCmds), executedShellCmds)
+	}
+	for i, cmd := range expectedShellCmds {
+		if executedShellCmds[i] != cmd {
+			t.Errorf("Expected shell command %d to be %q, got %q", i, cmd, executedShellCmds[i])
+		}
+	}
+
+	// Reset counters and test custom provider hooks
+	executedShellCmds = nil
+	executedCmds = nil
+	os.Args = []string{"cloakpkg", "install", configPath, "custom-pkg"}
+	runBundleCommand("install", configPath)
+
+	// Expected shell commands executed in order for custom provider:
+	// 1. pre_install bundle: "echo 'pre-install custom bundle'"
+	// 2. pre_install custom provider: "echo 'pre-install custom provider'"
+	// 3. custom install: "echo 'install custom'" (custom install command runs as shell command)
+	// 4. post_install custom provider: "echo 'post-install custom provider'"
+	// 5. post_install bundle: "echo 'post-install custom bundle'"
+
+	expectedCustomShellCmds := []string{
 		"echo 'pre-install custom bundle'",
 		"echo 'pre-install custom provider'",
 		"echo 'install custom'",
@@ -416,9 +588,12 @@ func TestBundleCommandHooks(t *testing.T) {
 		"echo 'post-install custom bundle'",
 	}
 
-	for _, hook := range expectedHooks {
-		if findCommand(executedCmds, "/bin/sh", "-c", hook) == nil {
-			t.Errorf("Missing hook command: %s", hook)
+	if len(executedShellCmds) != len(expectedCustomShellCmds) {
+		t.Fatalf("Expected %d shell commands, got %d: %v", len(expectedCustomShellCmds), len(executedShellCmds), executedShellCmds)
+	}
+	for i, cmd := range expectedCustomShellCmds {
+		if executedShellCmds[i] != cmd {
+			t.Errorf("Expected custom shell command %d to be %q, got %q", i, cmd, executedShellCmds[i])
 		}
 	}
 }
