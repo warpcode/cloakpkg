@@ -10,12 +10,12 @@ func TestAppsPackages(t *testing.T) {
 		executed := runTestFile(t, "apps.json", mockEnv{
 			availableCmds: []string{"flatpak", "snap", "apt-get"},
 		})
-		// We expect 3 commands:
+		// We expect at least 3 commands:
 		// 1. flatpak: com.discordapp.Discord, org.keepassxc.KeePassXC
 		// 2. snap: kontena-lens (with --classic)
-		// 3. apt: ffmpeg, code, cursor
-		if len(executed) != 3 {
-			t.Fatalf("Expected 3 commands executed, got %d: %v", len(executed), executed)
+		// 3. apt: ffmpeg, code, cursor (plus repo setup commands)
+		if len(executed) < 3 {
+			t.Fatalf("Expected at least 3 commands executed, got %d: %v", len(executed), executed)
 		}
 
 		var flatpakCmd, snapCmd, aptCmd []string

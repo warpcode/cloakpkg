@@ -10,10 +10,14 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		// Expected 3 commands:
+		// 1. sudo cp /tmp/... /etc/apt/sources.list.d/docker.asc (repo add)
+		// 2. sudo apt-get update
+		// 3. sudo apt-get install -y ...
+		if len(executed) != 3 {
+			t.Fatalf("Expected 3 commands executed, got %d: %v", len(executed), executed)
 		}
-		cmd := stripSudo(executed[0])
+		cmd := stripSudo(executed[2])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
@@ -57,10 +61,13 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"dnf"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		// Expected 2 commands:
+		// 1. sudo dnf config-manager --add-repo ...
+		// 2. sudo dnf install -y ...
+		if len(executed) != 2 {
+			t.Fatalf("Expected 2 commands executed, got %d: %v", len(executed), executed)
 		}
-		cmd := stripSudo(executed[0])
+		cmd := stripSudo(executed[1])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
