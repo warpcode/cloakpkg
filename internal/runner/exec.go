@@ -25,7 +25,7 @@ var DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 	return cmd.Run()
 }
 
-// DefaultShellExecutor runs a command string via /bin/sh (or cmd /C on Windows). Expose as a variable to allow mocking.
+// DefaultShellExecutor runs a command string via /bin/sh (or cmd /C on Windows).
 var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -42,7 +42,7 @@ var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
 	return cmd.Run()
 }
 
-// DefaultShellCheckExecutor runs a check command silently. Expose as a variable to allow mocking.
+// DefaultShellCheckExecutor runs a check command silently.
 var DefaultShellCheckExecutor = func(cmdStr string) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -80,7 +80,7 @@ func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
 	return Run(verbose, dryRun, "sudo", sudoArgs...)
 }
 
-// RunShell runs a custom script/command string via /bin/sh (or cmd /C on Windows).
+// RunShell runs a custom script/command string.
 func RunShell(verbose bool, dryRun bool, cmdStr string) error {
 	if dryRun {
 		shell := "/bin/sh -c"
