@@ -175,10 +175,7 @@ func (a *Apt) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 		} else if repo.Source != "" {
 			alreadyAdded := false
 			if !dryRun {
-				searchTerm := repo.Source
-				if strings.HasPrefix(searchTerm, "ppa:") {
-					searchTerm = strings.TrimPrefix(searchTerm, "ppa:")
-				}
+				searchTerm := strings.TrimPrefix(repo.Source, "ppa:")
 
 				args := []string{"-q", "-r", searchTerm, "/etc/apt/sources.list"}
 				if _, err := os.Stat("/etc/apt/sources.list.d"); err == nil {
