@@ -37,7 +37,6 @@ func (a *Apk) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"add"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apk", args...); err != nil {
 			return fmt.Errorf("apk: failed to install packages %v: %w", toInstall, err)
@@ -65,7 +64,6 @@ func (a *Apk) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 		}
 		args := []string{"del"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apk", args...); err != nil {
 			return fmt.Errorf("apk: failed to uninstall packages %v: %w", toUninstall, err)
@@ -87,7 +85,6 @@ func (a *Apk) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"add", "--upgrade"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "apk", args...); err != nil {
 			return fmt.Errorf("apk: failed to update packages %v: %w", toUpdate, err)

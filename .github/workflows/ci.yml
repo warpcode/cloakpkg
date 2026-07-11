@@ -27,9 +27,7 @@ jobs:
           cache: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.55.2
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8 run
 
   test:
     name: Run Tests
@@ -48,9 +46,4 @@ jobs:
           cache: true
 
       - name: Run Tests
-        run: |
-          if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            go test -v ./...
-          else
-            go test -v -race ./...
-          fi
+        run: go test -v -race ./...

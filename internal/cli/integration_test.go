@@ -10,15 +10,23 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-
-		if findCommand(executed, "apt-get", "install", "docker-ce") == nil {
-			t.Errorf("Missing apt install command for docker-ce")
+		if len(executed) != 1 {
+			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
 		}
-		if findCommand(executed, "apt-get", "update") == nil {
-			t.Errorf("Missing apt-get update command")
+		cmd := stripSudo(executed[0])
+		expectedPkgs := map[string]bool{
+			"flatpak": true,
+			"docker-ce": true,
+			"docker-ce-cli": true,
+			"containerd.io": true,
+			"docker-buildx-plugin": true,
+			"docker-compose-plugin": true,
 		}
-		if findCommand(executed, "cp") == nil {
-			t.Errorf("Missing cp command for repo setup")
+		for _, arg := range cmd[3:] {
+			delete(expectedPkgs, arg)
+		}
+		if len(expectedPkgs) > 0 {
+			t.Errorf("Apt missing integration packages: %v", expectedPkgs)
 		}
 	})
 
@@ -27,8 +35,20 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"pacman"},
 		})
-		if findCommand(executed, "pacman", "-S", "--noconfirm", "docker") == nil {
-			t.Errorf("Missing pacman install command for docker")
+		if len(executed) != 1 {
+			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		}
+		cmd := stripSudo(executed[0])
+		expectedPkgs := map[string]bool{
+			"flatpak": true,
+			"docker": true,
+			"docker-compose": true,
+		}
+		for _, arg := range cmd[3:] {
+			delete(expectedPkgs, arg)
+		}
+		if len(expectedPkgs) > 0 {
+			t.Errorf("Pacman missing integration packages: %v", expectedPkgs)
 		}
 	})
 
@@ -37,11 +57,23 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"dnf"},
 		})
-		if findCommand(executed, "dnf", "install", "docker-ce") == nil {
-			t.Errorf("Missing dnf install command for docker-ce")
+		if len(executed) != 1 {
+			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
 		}
-		if findCommand(executed, "dnf", "config-manager", "--add-repo") == nil {
-			t.Errorf("Missing dnf repo setup command")
+		cmd := stripSudo(executed[0])
+		expectedPkgs := map[string]bool{
+			"flatpak": true,
+			"docker-ce": true,
+			"docker-ce-cli": true,
+			"containerd.io": true,
+			"docker-buildx-plugin": true,
+			"docker-compose-plugin": true,
+		}
+		for _, arg := range cmd[3:] {
+			delete(expectedPkgs, arg)
+		}
+		if len(expectedPkgs) > 0 {
+			t.Errorf("Dnf missing integration packages: %v", expectedPkgs)
 		}
 	})
 
@@ -50,8 +82,12 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"brew"},
 		})
-		if findCommand(executed, "brew", "install", "--cask", "docker-desktop") == nil {
-			t.Errorf("Missing brew install command for docker-desktop")
+		if len(executed) != 1 {
+			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		}
+		cmd := stripSudo(executed[0])
+		if cmd[0] != "brew" || cmd[1] != "install" || cmd[2] != "--cask" || cmd[3] != "docker-desktop" {
+			t.Errorf("Unexpected brew docker-desktop installation: %v", cmd)
 		}
 	})
 }
