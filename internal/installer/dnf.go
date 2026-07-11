@@ -177,6 +177,7 @@ func (d *Dnf) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to install packages %v: %w", toInstall, err)
@@ -204,6 +205,7 @@ func (d *Dnf) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 		}
 		args := []string{"remove", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to uninstall packages %v: %w", toUninstall, err)
@@ -225,6 +227,7 @@ func (d *Dnf) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"upgrade", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to update packages %v: %w", toUpdate, err)
