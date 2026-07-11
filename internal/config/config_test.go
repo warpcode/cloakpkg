@@ -198,5 +198,3 @@ bundles:
 		t.Errorf("Expected provider post_install hook %q, got %q", "echo 'post-install apt'", apt.Hooks.PostInstall)
 	}
 }
-
-

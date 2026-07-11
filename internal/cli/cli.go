@@ -289,7 +289,7 @@ func runBundleCommand(command string, configFile string) {
 				} else {
 					builtinPackages[provName] = append(builtinPackages[provName], provConfig.Packages...)
 					builtinRepos[provName] = append(builtinRepos[provName], provConfig.Repositories...)
-					
+
 					// Add to providerBundles, keeping it unique
 					alreadyAdded := false
 					for _, bName := range providerBundles[provName] {

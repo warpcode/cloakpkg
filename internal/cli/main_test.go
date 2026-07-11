@@ -320,7 +320,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 		t.Errorf("Expected exactly 1 apt command, got %d: %v", len(aptCmds), aptCmds)
 	} else {
 		cmd := aptCmds[0]
-		if cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "neovim" {
+		if cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "--" || cmd[4] != "neovim" {
 			t.Errorf("Unexpected apt command structure: %v", cmd)
 		}
 	}

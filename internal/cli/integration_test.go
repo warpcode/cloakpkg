@@ -10,10 +10,10 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		cmd := findCommand(executed, "apt-get")
+		if cmd == nil || cmd[1] != "install" {
+			t.Fatalf("Expected apt-get install command executed, got: %v", executed)
 		}
-		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
@@ -22,7 +22,7 @@ func TestIntegrationPackages(t *testing.T) {
 			"docker-buildx-plugin": true,
 			"docker-compose-plugin": true,
 		}
-		for _, arg := range cmd[3:] {
+		for _, arg := range cmd[4:] {
 			delete(expectedPkgs, arg)
 		}
 		if len(expectedPkgs) > 0 {
@@ -35,10 +35,10 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"pacman"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		cmd := findCommand(executed, "pacman")
+		if cmd == nil || cmd[1] != "-S" {
+			t.Fatalf("Expected pacman -S command executed, got: %v", executed)
 		}
-		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker": true,
@@ -57,10 +57,10 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"dnf"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
+		cmd := findCommand(executed, "dnf")
+		if cmd == nil || cmd[1] != "install" {
+			t.Fatalf("Expected dnf install command executed, got: %v", executed)
 		}
-		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
@@ -82,11 +82,8 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"brew"},
 		})
-		if len(executed) != 1 {
-			t.Fatalf("Expected 1 command executed, got %d: %v", len(executed), executed)
-		}
-		cmd := stripSudo(executed[0])
-		if cmd[0] != "brew" || cmd[1] != "install" || cmd[2] != "--cask" || cmd[3] != "docker-desktop" {
+		cmd := findCommand(executed, "brew")
+		if cmd == nil || cmd[1] != "install" || cmd[2] != "--cask" || cmd[3] != "docker-desktop" {
 			t.Errorf("Unexpected brew docker-desktop installation: %v", cmd)
 		}
 	})

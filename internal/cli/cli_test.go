@@ -17,7 +17,7 @@ func TestCliPackages(t *testing.T) {
 		if len(executed) != 2 {
 			t.Fatalf("Expected 2 commands executed, got %d: %v", len(executed), executed)
 		}
-		
+
 		var miseCmd, brewCmd []string
 		for _, cmd := range executed {
 			if cmd[0] == "mise" {
