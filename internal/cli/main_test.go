@@ -72,6 +72,7 @@ func TestMatchTags(t *testing.T) {
 }
 
 func TestBundleCommandLifecycle(t *testing.T) {
+	// Mock executor & exists
 	origExecutor := runner.DefaultExecutor
 	origShellExecutor := runner.DefaultShellExecutor
 	origShellCheckExecutor := runner.DefaultShellCheckExecutor
@@ -89,6 +90,9 @@ func TestBundleCommandLifecycle(t *testing.T) {
 
 	var executedCmds [][]string
 	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
 	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
 		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
 		return nil
@@ -96,9 +100,6 @@ func TestBundleCommandLifecycle(t *testing.T) {
 	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
 		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
 		return os.ErrNotExist // Mock detect failed
-	}
-		executedCmds = append(executedCmds, append([]string{bin}, args...))
-		return nil
 	}
 	runner.CommandExists = func(name string) bool {
 		// Mock npm, brew, and apt as available
@@ -323,6 +324,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 			t.Errorf("Unexpected apt command structure: %v", cmd)
 		}
 	}
+
 	// 4. Verify Custom execution
 	if len(customCmds) != 2 {
 		t.Errorf("Expected exactly 2 custom commands (1 detect, 1 install), got %d: %v", len(customCmds), customCmds)
@@ -339,7 +341,6 @@ func TestBundleCommandLifecycle(t *testing.T) {
 			t.Errorf("Unexpected custom install command: %v", installCmd)
 		}
 	}
-
 
 	// 5. Verify tag filtering (htop was excluded)
 	for _, cmd := range executedCmds {
