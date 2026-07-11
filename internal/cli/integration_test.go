@@ -15,11 +15,11 @@ func TestIntegrationPackages(t *testing.T) {
 			t.Fatalf("Expected apt-get install command executed, got: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
-			"flatpak":               true,
-			"docker-ce":             true,
-			"docker-ce-cli":         true,
-			"containerd.io":         true,
-			"docker-buildx-plugin":  true,
+			"flatpak": true,
+			"docker-ce": true,
+			"docker-ce-cli": true,
+			"containerd.io": true,
+			"docker-buildx-plugin": true,
 			"docker-compose-plugin": true,
 		}
 		for _, arg := range cmd[4:] {
@@ -40,8 +40,8 @@ func TestIntegrationPackages(t *testing.T) {
 			t.Fatalf("Expected pacman -S command executed, got: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
-			"flatpak":        true,
-			"docker":         true,
+			"flatpak": true,
+			"docker": true,
 			"docker-compose": true,
 		}
 		for _, arg := range cmd[3:] {
@@ -62,11 +62,11 @@ func TestIntegrationPackages(t *testing.T) {
 			t.Fatalf("Expected dnf install command executed, got: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
-			"flatpak":               true,
-			"docker-ce":             true,
-			"docker-ce-cli":         true,
-			"containerd.io":         true,
-			"docker-buildx-plugin":  true,
+			"flatpak": true,
+			"docker-ce": true,
+			"docker-ce-cli": true,
+			"containerd.io": true,
+			"docker-buildx-plugin": true,
 			"docker-compose-plugin": true,
 		}
 		for _, arg := range cmd[3:] {

@@ -69,9 +69,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh-client": true,
-			"tmux":           true,
-			"screen":         true,
-			"rsync":          true,
+			"tmux": true,
+			"screen": true,
+			"rsync": true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)
@@ -92,9 +92,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh-clients": true,
-			"tmux":            true,
-			"screen":          true,
-			"rsync":           true,
+			"tmux": true,
+			"screen": true,
+			"rsync": true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)
@@ -115,9 +115,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh": true,
-			"tmux":    true,
-			"screen":  true,
-			"rsync":   true,
+			"tmux": true,
+			"screen": true,
+			"rsync": true,
 		}
 		for _, arg := range cmd[2:] {
 			delete(expectedPkgs, arg)
@@ -139,9 +139,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh": true,
-			"tmux":    true,
-			"screen":  true,
-			"rsync":   true,
+			"tmux": true,
+			"screen": true,
+			"rsync": true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)

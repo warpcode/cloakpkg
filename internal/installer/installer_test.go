@@ -1,10 +1,10 @@
 package installer
 
 import (
-	"cloakpkg/internal/config"
-	"cloakpkg/internal/runner"
 	"errors"
 	"fmt"
+	"cloakpkg/internal/config"
+	"cloakpkg/internal/runner"
 	"testing"
 )
 

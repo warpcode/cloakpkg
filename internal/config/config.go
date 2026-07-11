@@ -118,6 +118,7 @@ func (p *Package) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+
 // LoadConfig reads and parses a JSON or YAML config file.
 func LoadConfig(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
