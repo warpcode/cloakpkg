@@ -17,7 +17,7 @@ func TestCliPackages(t *testing.T) {
 		if len(executed) != 2 {
 			t.Fatalf("Expected 2 commands executed, got %d: %v", len(executed), executed)
 		}
-		
+
 		var miseCmd, brewCmd []string
 		for _, cmd := range executed {
 			if cmd[0] == "mise" {
@@ -69,9 +69,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh-client": true,
-			"tmux": true,
-			"screen": true,
-			"rsync": true,
+			"tmux":           true,
+			"screen":         true,
+			"rsync":          true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)
@@ -92,9 +92,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh-clients": true,
-			"tmux": true,
-			"screen": true,
-			"rsync": true,
+			"tmux":            true,
+			"screen":          true,
+			"rsync":           true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)
@@ -115,9 +115,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh": true,
-			"tmux": true,
-			"screen": true,
-			"rsync": true,
+			"tmux":    true,
+			"screen":  true,
+			"rsync":   true,
 		}
 		for _, arg := range cmd[2:] {
 			delete(expectedPkgs, arg)
@@ -139,9 +139,9 @@ func TestCliPackages(t *testing.T) {
 		cmd := stripSudo(executed[0])
 		expectedPkgs := map[string]bool{
 			"openssh": true,
-			"tmux": true,
-			"screen": true,
-			"rsync": true,
+			"tmux":    true,
+			"screen":  true,
+			"rsync":   true,
 		}
 		for _, arg := range cmd[3:] {
 			delete(expectedPkgs, arg)

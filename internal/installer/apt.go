@@ -239,6 +239,7 @@ func (a *Apt) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to install packages %v: %w", toInstall, err)
@@ -266,6 +267,7 @@ func (a *Apt) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 		}
 		args := []string{"remove", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to uninstall packages %v: %w", toUninstall, err)
@@ -287,6 +289,7 @@ func (a *Apt) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install", "-y", "--only-upgrade"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to update packages %v: %w", toUpdate, err)

@@ -39,15 +39,15 @@ func TestAiPackages(t *testing.T) {
 			t.Errorf("Missing npm command")
 		} else {
 			expected := map[string]bool{
-				"skills@latest": true,
-				"@github/copilot": true,
-				"@google/gemini-cli": true,
-				"opencode-ai@latest": true,
-				"@kilocode/cli": true,
+				"skills@latest":                 true,
+				"@github/copilot":               true,
+				"@google/gemini-cli":            true,
+				"opencode-ai@latest":            true,
+				"@kilocode/cli":                 true,
 				"@mariozechner/pi-coding-agent": true,
-				"@qwen-code/qwen-code@latest": true,
-				"@openai/codex": true,
-				"@anthropic-ai/claude-code": true,
+				"@qwen-code/qwen-code@latest":   true,
+				"@openai/codex":                 true,
+				"@anthropic-ai/claude-code":     true,
 			}
 			for _, arg := range npmCmd[2:] {
 				delete(expected, arg)

@@ -80,6 +80,15 @@ func stripSudo(cmd []string) []string {
 	return cmd
 }
 
+func findCommand(executed [][]string, bin string) []string {
+	for i := len(executed) - 1; i >= 0; i-- {
+		if stripSudo(executed[i])[0] == bin {
+			return stripSudo(executed[i])
+		}
+	}
+	return nil
+}
+
 func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 	content, err := os.ReadFile(filepath.Join("../../testdata", relativePath))
 	if err != nil {

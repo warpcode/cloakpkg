@@ -1,10 +1,10 @@
 package installer
 
 import (
-	"errors"
-	"fmt"
 	"cloakpkg/internal/config"
 	"cloakpkg/internal/runner"
+	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -53,11 +53,11 @@ func TestAptInstall(t *testing.T) {
 	cmd := executedCmds[0]
 	// Since os.Geteuid() is likely not root (0), RunSudo will execute "sudo apt-get ..."
 	if cmd[0] == "sudo" {
-		if cmd[1] != "apt-get" || cmd[2] != "install" || cmd[3] != "-y" || cmd[4] != "--no-install-recommends" || cmd[5] != "git" {
+		if cmd[1] != "apt-get" || cmd[2] != "install" || cmd[3] != "-y" || cmd[4] != "--no-install-recommends" || cmd[5] != "--" || cmd[6] != "git" {
 			t.Errorf("Unexpected sudo command: %v", cmd)
 		}
 	} else {
-		if cmd[0] != "apt-get" || cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "--no-install-recommends" || cmd[4] != "git" {
+		if cmd[0] != "apt-get" || cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "--no-install-recommends" || cmd[4] != "--" || cmd[5] != "git" {
 			t.Errorf("Unexpected non-sudo command: %v", cmd)
 		}
 	}
@@ -252,4 +252,3 @@ func TestCargoInstall(t *testing.T) {
 		t.Errorf("Unexpected command executed: %v", cmd)
 	}
 }
-

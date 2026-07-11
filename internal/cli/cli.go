@@ -289,7 +289,7 @@ func runBundleCommand(command string, configFile string) {
 				} else {
 					builtinPackages[provName] = append(builtinPackages[provName], provConfig.Packages...)
 					builtinRepos[provName] = append(builtinRepos[provName], provConfig.Repositories...)
-					
+
 					// Add to providerBundles, keeping it unique
 					alreadyAdded := false
 					for _, bName := range providerBundles[provName] {
@@ -621,12 +621,12 @@ func runPreHooks(verbose bool, dryRun bool, command string, provName string, bun
 	}
 
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "pre_" + command, bundleName, bundleHook); err != nil {
+		if err := runHook(verbose, dryRun, "pre_"+command, bundleName, bundleHook); err != nil {
 			return err
 		}
 	}
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "pre_" + command + " (" + provName + ")", bundleName, provHook); err != nil {
+		if err := runHook(verbose, dryRun, "pre_"+command+" ("+provName+")", bundleName, provHook); err != nil {
 			return err
 		}
 	}
@@ -660,12 +660,12 @@ func runPostHooks(verbose bool, dryRun bool, command string, provName string, bu
 	}
 
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "post_" + command + " (" + provName + ")", bundleName, provHook); err != nil {
+		if err := runHook(verbose, dryRun, "post_"+command+" ("+provName+")", bundleName, provHook); err != nil {
 			return err
 		}
 	}
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "post_" + command, bundleName, bundleHook); err != nil {
+		if err := runHook(verbose, dryRun, "post_"+command, bundleName, bundleHook); err != nil {
 			return err
 		}
 	}
