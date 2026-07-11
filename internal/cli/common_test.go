@@ -87,3 +87,33 @@ func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 	}
 	return runTestConfig(t, string(content), env)
 }
+
+// findCommand finds a command that matches the given binary and arguments
+func findCommand(executed [][]string, expectedBin string, requiredArgs ...string) []string {
+	for _, cmd := range executed {
+		cleanCmd := stripSudo(cmd)
+		if len(cleanCmd) == 0 || cleanCmd[0] != expectedBin {
+			continue
+		}
+
+		allMatch := true
+		for _, arg := range requiredArgs {
+			found := false
+			for _, cmdArg := range cleanCmd[1:] {
+				if cmdArg == arg {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allMatch = false
+				break
+			}
+		}
+
+		if allMatch {
+			return cleanCmd
+		}
+	}
+	return nil
+}
