@@ -98,7 +98,8 @@ func TestBundleCommandLifecycle(t *testing.T) {
 		return nil
 	}
 	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
-		return nil
+		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
+		return os.ErrNotExist // Mock detect as failed to trigger install
 	}
 	runner.CommandExists = func(name string) bool {
 		// Mock npm, brew, and apt as available
@@ -245,11 +246,10 @@ func TestBundleCommandLifecycle(t *testing.T) {
 			brewCmds = append(brewCmds, cleanCmd)
 		case "apt-get":
 			aptCmds = append(aptCmds, cleanCmd)
-		case "/bin/sh":
+		case "/bin/sh", "cmd":
 			customCmds = append(customCmds, cleanCmd)
 		}
 	}
-	_ = customCmds // suppress SA4010
 
 	// 1. Verify NPM collation and execution
 	if len(npmCmds) != 2 {
@@ -325,7 +325,22 @@ func TestBundleCommandLifecycle(t *testing.T) {
 		}
 	}
 
-	// 4. Verify tag filtering (htop was excluded)
+	// 4. Verify Custom provider execution
+	if len(customCmds) < 2 {
+		t.Errorf("Expected at least 2 custom shell commands (detect + install), got %d: %v", len(customCmds), customCmds)
+	} else {
+		// Command format: ["/bin/sh", "-c", "cmdStr"]
+		detectCmd := customCmds[0]
+		if detectCmd[2] != "echo 'checking custom'" {
+			t.Errorf("Unexpected custom detect command: %v", detectCmd)
+		}
+		installCmd := customCmds[1]
+		if installCmd[2] != "echo 'installing custom'" {
+			t.Errorf("Unexpected custom install command: %v", installCmd)
+		}
+	}
+
+	// 5. Verify tag filtering (htop was excluded)
 	for _, cmd := range executedCmds {
 		for _, arg := range cmd {
 			if arg == "htop" {

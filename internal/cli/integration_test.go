@@ -10,16 +10,10 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-		// Expected at least 3 commands (up to 5 if keyring needs to be installed):
-		// - (optional) sudo mkdir -p /etc/apt/keyrings
-		// - (optional) sudo gpg --dearmor -o /etc/apt/keyrings/docker.asc /tmp/...
-		// - sudo cp /tmp/... /etc/apt/sources.list.d/docker.asc
-		// - sudo apt-get update
-		// - sudo apt-get install -y ...
-		if len(executed) < 3 {
-			t.Fatalf("Expected at least 3 commands executed, got %d: %v", len(executed), executed)
+		cmd := findCommand(executed, "apt-get", "install", "docker-ce")
+		if cmd == nil {
+			t.Fatalf("Apt docker-ce installation command not found in executed commands: %v", executed)
 		}
-		cmd := stripSudo(executed[len(executed)-1])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
@@ -63,13 +57,10 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"dnf"},
 		})
-		// Expected 2 commands:
-		// 1. sudo dnf config-manager --add-repo ...
-		// 2. sudo dnf install -y ...
-		if len(executed) != 2 {
-			t.Fatalf("Expected 2 commands executed, got %d: %v", len(executed), executed)
+		cmd := findCommand(executed, "dnf", "install", "docker-ce")
+		if cmd == nil {
+			t.Fatalf("Dnf docker-ce installation command not found in executed commands: %v", executed)
 		}
-		cmd := stripSudo(executed[1])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,

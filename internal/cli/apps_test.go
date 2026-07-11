@@ -10,26 +10,9 @@ func TestAppsPackages(t *testing.T) {
 		executed := runTestFile(t, "apps.json", mockEnv{
 			availableCmds: []string{"flatpak", "snap", "apt-get"},
 		})
-		// We expect at least 3 commands:
-		// 1. flatpak: com.discordapp.Discord, org.keepassxc.KeePassXC
-		// 2. snap: kontena-lens (with --classic)
-		// 3. apt: ffmpeg, code, cursor (plus repo setup commands)
-		if len(executed) < 3 {
-			t.Fatalf("Expected at least 3 commands executed, got %d: %v", len(executed), executed)
-		}
-
-		var flatpakCmd, snapCmd, aptCmd []string
-		for _, cmd := range executed {
-			cleanCmd := stripSudo(cmd)
-			switch cleanCmd[0] {
-			case "flatpak":
-				flatpakCmd = cleanCmd
-			case "snap":
-				snapCmd = cleanCmd
-			case "apt-get":
-				aptCmd = cleanCmd
-			}
-		}
+		flatpakCmd := findCommand(executed, "flatpak", "install", "com.discordapp.Discord")
+		snapCmd := findCommand(executed, "snap", "install", "kontena-lens")
+		aptCmd := findCommand(executed, "apt-get", "install", "ffmpeg")
 
 		if len(flatpakCmd) == 0 {
 			t.Errorf("Missing flatpak command")

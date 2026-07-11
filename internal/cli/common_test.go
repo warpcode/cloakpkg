@@ -87,3 +87,33 @@ func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 	}
 	return runTestConfig(t, string(content), env)
 }
+
+func findCommand(executed [][]string, bin string, args ...string) []string {
+	for _, cmd := range executed {
+		clean := stripSudo(cmd)
+		if clean[0] != bin {
+			continue
+		}
+		if len(args) == 0 {
+			return clean
+		}
+		match := true
+		for _, arg := range args {
+			found := false
+			for _, a := range clean[1:] {
+				if a == arg {
+					found = true
+					break
+				}
+			}
+			if !found {
+				match = false
+				break
+			}
+		}
+		if match {
+			return clean
+		}
+	}
+	return nil
+}
