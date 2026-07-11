@@ -7,13 +7,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Dnf struct{}
 
-func expandRepoVariablesDnf(s string) string {
-	distro := "fedora"
-	versionID := "40"
+var (
+	dnfOnce      sync.Once
+	dnfDistro    = "fedora"
+	dnfVersionID = "40"
+)
+
+func initDnfVariables() {
 	if data, err := os.ReadFile("/etc/os-release"); err == nil {
 		for _, line := range strings.Split(string(data), "\n") {
 			line = strings.TrimSpace(line)
@@ -28,16 +33,21 @@ func expandRepoVariablesDnf(s string) string {
 			v := strings.TrimSpace(parts[1])
 			v = strings.Trim(v, `"'`)
 			if k == "ID" {
-				distro = v
+				dnfDistro = v
 			} else if k == "VERSION_ID" {
-				versionID = v
+				dnfVersionID = v
 			}
 		}
 	}
-	s = strings.ReplaceAll(s, "${distro}", distro)
-	s = strings.ReplaceAll(s, "${DISTRO}", distro)
-	s = strings.ReplaceAll(s, "${version_id}", versionID)
-	s = strings.ReplaceAll(s, "${VERSION_ID}", versionID)
+}
+
+func expandRepoVariablesDnf(s string) string {
+	dnfOnce.Do(initDnfVariables)
+
+	s = strings.ReplaceAll(s, "${distro}", dnfDistro)
+	s = strings.ReplaceAll(s, "${DISTRO}", dnfDistro)
+	s = strings.ReplaceAll(s, "${version_id}", dnfVersionID)
+	s = strings.ReplaceAll(s, "${VERSION_ID}", dnfVersionID)
 	return s
 }
 
