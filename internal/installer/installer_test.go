@@ -110,6 +110,44 @@ func TestMiseInstall(t *testing.T) {
 	}
 }
 
+func TestGetRegistry(t *testing.T) {
+	registry := GetRegistry()
+
+	expectedKeys := []string{
+		"apt",
+		"brew",
+		"snap",
+		"flatpak",
+		"dnf",
+		"pacman",
+		"apk",
+		"zypper",
+		"npm",
+		"cargo",
+		"go",
+		"pipx",
+		"uvx",
+		"gem",
+		"mise",
+		"termux",
+	}
+
+	if len(registry) != len(expectedKeys) {
+		t.Fatalf("Expected registry length %d, got %d", len(expectedKeys), len(registry))
+	}
+
+	for _, key := range expectedKeys {
+		installer, exists := registry[key]
+		if !exists {
+			t.Errorf("Expected installer for key %q to exist in registry", key)
+			continue
+		}
+		if installer == nil {
+			t.Errorf("Expected non-nil installer for key %q", key)
+		}
+	}
+}
+
 func TestCustomInstall(t *testing.T) {
 	origShellExecutor := runner.DefaultShellExecutor
 	origShellCheck := runner.DefaultShellCheckExecutor
