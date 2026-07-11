@@ -10,14 +10,16 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-		// Expected 3 commands:
-		// 1. sudo cp /tmp/... /etc/apt/sources.list.d/docker.asc (repo add)
-		// 2. sudo apt-get update
-		// 3. sudo apt-get install -y ...
-		if len(executed) != 3 {
-			t.Fatalf("Expected 3 commands executed, got %d: %v", len(executed), executed)
+		// Expected at least 3 commands (up to 5 if keyring needs to be installed):
+		// - (optional) sudo mkdir -p /etc/apt/keyrings
+		// - (optional) sudo gpg --dearmor -o /etc/apt/keyrings/docker.asc /tmp/...
+		// - sudo cp /tmp/... /etc/apt/sources.list.d/docker.asc
+		// - sudo apt-get update
+		// - sudo apt-get install -y ...
+		if len(executed) < 3 {
+			t.Fatalf("Expected at least 3 commands executed, got %d: %v", len(executed), executed)
 		}
-		cmd := stripSudo(executed[2])
+		cmd := stripSudo(executed[len(executed)-1])
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
 			"docker-ce": true,
