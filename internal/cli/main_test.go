@@ -74,11 +74,15 @@ func TestMatchTags(t *testing.T) {
 func TestBundleCommandLifecycle(t *testing.T) {
 	// Mock executor & exists
 	origExecutor := runner.DefaultExecutor
+	origShellExecutor := runner.DefaultShellExecutor
+	origShellCheck := runner.DefaultShellCheckExecutor
 	origExists := runner.CommandExists
 	origCheck := runner.DefaultCheckExecutor
 	origCheckOutput := runner.DefaultCheckOutputExecutor
 	defer func() {
 		runner.DefaultExecutor = origExecutor
+		runner.DefaultShellExecutor = origShellExecutor
+		runner.DefaultShellCheckExecutor = origShellCheck
 		runner.CommandExists = origExists
 		runner.DefaultCheckExecutor = origCheck
 		runner.DefaultCheckOutputExecutor = origCheckOutput
@@ -87,6 +91,13 @@ func TestBundleCommandLifecycle(t *testing.T) {
 	var executedCmds [][]string
 	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
+		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
+		return nil
+	}
+	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
 		return nil
 	}
 	runner.CommandExists = func(name string) bool {
@@ -238,6 +249,7 @@ func TestBundleCommandLifecycle(t *testing.T) {
 			customCmds = append(customCmds, cleanCmd)
 		}
 	}
+	_ = customCmds // suppress SA4010
 
 	// 1. Verify NPM collation and execution
 	if len(npmCmds) != 2 {
