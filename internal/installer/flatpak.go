@@ -34,6 +34,12 @@ func (f *Flatpak) AddRepositories(verbose bool, dryRun bool, repos []config.Repo
 			if err := runner.Run(verbose, dryRun, "flatpak", "remote-add", "--if-not-exists", name, url); err != nil {
 				return fmt.Errorf("flatpak: failed to add remote repository %s: %w", name, err)
 			}
+			// Refresh AppStream metadata so that newly added remote's packages are searchable
+			if err := runner.Run(verbose, dryRun, "flatpak", "update", "--appstream"); err != nil {
+				if verbose {
+					fmt.Printf("flatpak: warning: failed to update appstream metadata: %v\n", err)
+				}
+			}
 		}
 	}
 	return nil
