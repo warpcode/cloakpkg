@@ -80,14 +80,6 @@ func stripSudo(cmd []string) []string {
 	return cmd
 }
 
-func findCommand(executed [][]string, bin string) []string {
-	for i := len(executed) - 1; i >= 0; i-- {
-		if stripSudo(executed[i])[0] == bin {
-			return stripSudo(executed[i])
-		}
-	}
-	return nil
-}
 
 func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 	content, err := os.ReadFile(filepath.Join("../../testdata", relativePath))
@@ -95,4 +87,34 @@ func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 		t.Fatalf("Failed to read test config file %s: %v", relativePath, err)
 	}
 	return runTestConfig(t, string(content), env)
+}
+
+// findCommand finds a command that matches the given binary and arguments
+func findCommand(executed [][]string, expectedBin string, requiredArgs ...string) []string {
+	for _, cmd := range executed {
+		cleanCmd := stripSudo(cmd)
+		if len(cleanCmd) == 0 || cleanCmd[0] != expectedBin {
+			continue
+		}
+
+		allMatch := true
+		for _, arg := range requiredArgs {
+			found := false
+			for _, cmdArg := range cleanCmd[1:] {
+				if cmdArg == arg {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allMatch = false
+				break
+			}
+		}
+
+		if allMatch {
+			return cleanCmd
+		}
+	}
+	return nil
 }

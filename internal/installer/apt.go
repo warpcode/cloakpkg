@@ -9,20 +9,25 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Apt struct{}
 
-func expandRepoVariables(s string) string {
-	arch := "amd64"
+var (
+	aptOnce     sync.Once
+	aptArch     = "amd64"
+	aptDistro   = "ubuntu"
+	aptCodename = "noble"
+)
+
+func initAptVariables() {
 	if runner.CommandExists("dpkg") {
 		if out, err := runner.RunCheckOutput("dpkg", "--print-architecture"); err == nil {
-			arch = strings.TrimSpace(out)
+			aptArch = strings.TrimSpace(out)
 		}
 	}
 
-	distro := "ubuntu"
-	codename := "noble"
 	if data, err := os.ReadFile("/etc/os-release"); err == nil {
 		for _, line := range strings.Split(string(data), "\n") {
 			line = strings.TrimSpace(line)
@@ -37,19 +42,23 @@ func expandRepoVariables(s string) string {
 			v := strings.TrimSpace(parts[1])
 			v = strings.Trim(v, `"'`)
 			if k == "ID" {
-				distro = v
+				aptDistro = v
 			} else if k == "VERSION_CODENAME" {
-				codename = v
+				aptCodename = v
 			}
 		}
 	}
+}
 
-	s = strings.ReplaceAll(s, "${ARCH}", arch)
-	s = strings.ReplaceAll(s, "${arch}", arch)
-	s = strings.ReplaceAll(s, "${DISTRO}", distro)
-	s = strings.ReplaceAll(s, "${distro}", distro)
-	s = strings.ReplaceAll(s, "${VERSION_CODENAME}", codename)
-	s = strings.ReplaceAll(s, "${version_codename}", codename)
+func expandRepoVariables(s string) string {
+	aptOnce.Do(initAptVariables)
+
+	s = strings.ReplaceAll(s, "${ARCH}", aptArch)
+	s = strings.ReplaceAll(s, "${arch}", aptArch)
+	s = strings.ReplaceAll(s, "${DISTRO}", aptDistro)
+	s = strings.ReplaceAll(s, "${distro}", aptDistro)
+	s = strings.ReplaceAll(s, "${VERSION_CODENAME}", aptCodename)
+	s = strings.ReplaceAll(s, "${version_codename}", aptCodename)
 	return s
 }
 

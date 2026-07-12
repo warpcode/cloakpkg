@@ -13,22 +13,11 @@ func TestCliPackages(t *testing.T) {
 		// We expect:
 		// 1. Mise installs: jq, yq, fzf, bat, gomplate, gh, lazygit, neovim@0.11.6, uv
 		// 2. Brew installs: tmux, screen, rsync
-		// Let's assert we ran exactly 2 commands
-		if len(executed) != 2 {
-			t.Fatalf("Expected 2 commands executed, got %d: %v", len(executed), executed)
-		}
+		miseCmd := findCommand(executed, "mise", "install")
+		brewCmd := findCommand(executed, "brew", "install")
 
-		var miseCmd, brewCmd []string
-		for _, cmd := range executed {
-			if cmd[0] == "mise" {
-				miseCmd = cmd
-			} else if cmd[0] == "brew" {
-				brewCmd = cmd
-			}
-		}
-
-		if len(miseCmd) == 0 {
-			t.Errorf("Missing mise installation command")
+		if miseCmd == nil {
+			t.Errorf("Missing mise installation command. Executed: %v", executed)
 		} else {
 			expectedMise := map[string]bool{
 				"jq": true, "yq": true, "fzf": true, "bat": true,

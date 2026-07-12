@@ -10,9 +10,9 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"apt-get"},
 		})
-		cmd := findCommand(executed, "apt-get")
-		if cmd == nil || cmd[1] != "install" {
-			t.Fatalf("Expected apt-get install command executed, got: %v", executed)
+		cmd := findCommand(executed, "apt-get", "install")
+		if cmd == nil {
+			t.Fatalf("Apt missing install command. Executed: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
@@ -35,9 +35,9 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"pacman"},
 		})
-		cmd := findCommand(executed, "pacman")
-		if cmd == nil || cmd[1] != "-S" {
-			t.Fatalf("Expected pacman -S command executed, got: %v", executed)
+		cmd := findCommand(executed, "pacman", "-S")
+		if cmd == nil {
+			t.Fatalf("Pacman missing install command. Executed: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
@@ -57,9 +57,9 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"dnf"},
 		})
-		cmd := findCommand(executed, "dnf")
-		if cmd == nil || cmd[1] != "install" {
-			t.Fatalf("Expected dnf install command executed, got: %v", executed)
+		cmd := findCommand(executed, "dnf", "install")
+		if cmd == nil {
+			t.Fatalf("Dnf missing install command. Executed: %v", executed)
 		}
 		expectedPkgs := map[string]bool{
 			"flatpak": true,
@@ -82,8 +82,11 @@ func TestIntegrationPackages(t *testing.T) {
 		executed := runTestFile(t, "integration.json", mockEnv{
 			availableCmds: []string{"brew"},
 		})
-		cmd := findCommand(executed, "brew")
-		if cmd == nil || cmd[1] != "install" || cmd[2] != "--cask" || cmd[3] != "docker-desktop" {
+		cmd := findCommand(executed, "brew", "install")
+		if cmd == nil {
+			t.Fatalf("Brew missing install command. Executed: %v", executed)
+		}
+		if cmd[0] != "brew" || cmd[1] != "install" || cmd[2] != "--cask" || cmd[3] != "docker-desktop" {
 			t.Errorf("Unexpected brew docker-desktop installation: %v", cmd)
 		}
 	})
