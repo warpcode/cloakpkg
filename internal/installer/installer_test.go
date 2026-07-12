@@ -252,3 +252,62 @@ func TestCargoInstall(t *testing.T) {
 		t.Errorf("Unexpected command executed: %v", cmd)
 	}
 }
+
+func TestPacmanInstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheck := runner.DefaultCheckExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckExecutor = origCheck
+	}()
+
+	var checkedCmds [][]string
+	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		checkedCmds = append(checkedCmds, append([]string{bin}, args...))
+		return fmt.Errorf("not installed")
+	}
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "pacman"
+	}
+
+	pacman := &Pacman{}
+
+	pkgs := []config.Package{
+		{Name: "git", ExtraParams: []string{"--quiet"}},
+	}
+
+	err := pacman.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	if len(checkedCmds) == 0 {
+		t.Fatalf("Expected check command to be executed, but none was")
+	}
+	checkCmd := checkedCmds[0]
+	if len(checkCmd) < 4 {
+		t.Fatalf("Expected checked command to have at least 4 arguments, got %d", len(checkCmd))
+	}
+	if checkCmd[0] != "pacman" || checkCmd[1] != "-Qq" || checkCmd[2] != "--" || checkCmd[3] != "git" {
+		t.Errorf("Unexpected check command executed: %v", checkCmd)
+	}
+
+	if len(executedCmds) == 0 {
+		t.Fatalf("Expected command to be executed, but none was")
+	}
+	cmd := executedCmds[0]
+	if len(cmd) < 7 {
+		t.Fatalf("Expected executed command to have at least 7 arguments, got %d", len(cmd))
+	}
+	if cmd[0] != "sudo" || cmd[1] != "pacman" || cmd[2] != "-S" || cmd[3] != "--noconfirm" || cmd[4] != "--quiet" || cmd[5] != "--" || cmd[6] != "git" {
+		t.Errorf("Unexpected command executed: %v", cmd)
+	}
+}
