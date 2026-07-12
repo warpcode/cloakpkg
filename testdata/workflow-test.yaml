@@ -7,25 +7,25 @@ bundles:
     tags: [apt]
     providers:
       apt:
-        packages: [hello]
+        packages: [sl]
 
   test-dnf:
     tags: [dnf]
     providers:
       dnf:
-        packages: [hello]
+        packages: [sl]
 
   test-pacman:
     tags: [pacman]
     providers:
       pacman:
-        packages: [hello]
+        packages: [sl]
 
   test-brew:
     tags: [brew]
     providers:
       brew:
-        packages: [hello]
+        packages: [sl]
 
   test-brew-cask:
     tags: [brew-cask]
@@ -56,7 +56,7 @@ bundles:
         repositories:
           - source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
         packages:
-          - name: org.gnu.Hello
+          - name: org.gnome.HexEditor
             extra_params: ["flathub"]
 
   test-npm:
@@ -77,15 +77,16 @@ bundles:
     description: "Tests that the first available provider is chosen"
     providers:
       brew:
-        packages: [hello]
+        packages: [sl]
       apt:
-        packages: [hello]
+        packages: [sl]
       dnf:
-        packages: [hello]
+        packages: [sl]
       pacman:
-        packages: [hello]
+        packages: [sl]
       custom:
-        detect: "command -v hello"
+        # Cross-platform check: command -v is sh, where is cmd
+        detect: "sl --version"
         install: "echo 'Fallback to custom install'"
 
   test-all-available:

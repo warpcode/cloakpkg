@@ -53,69 +53,84 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y hello flatpak
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo apt-get install -y sl flatpak
+          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - name: Install Prerequisites (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install hello
+          brew install sl
 
       - name: Build cloakpkg
-        run: go build -o cloakpkg .
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            go build -buildvcs=false -o cloakpkg.exe .
+          else
+            go build -buildvcs=false -o cloakpkg .
+          fi
+        shell: bash
+
+      - name: Set Cloakpkg Binary Path
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            echo "CLOAKPKG=./cloakpkg.exe" >> $GITHUB_ENV
+          else
+            echo "CLOAKPKG=./cloakpkg" >> $GITHUB_ENV
+          fi
+        shell: bash
 
       - name: Verify Installer Availability
         shell: bash
-        run: ./cloakpkg list-installers
+        run: $CLOAKPKG list-installers
 
       - name: Run Hierarchy Test (Dry-run)
         shell: bash
-        run: ./cloakpkg install testdata/workflow-test.yaml -t hierarchy -n -v
+        run: $CLOAKPKG install testdata/workflow-test.yaml -t hierarchy -n -v
 
       - name: Run OS Detection Test
         shell: bash
-        run: ./cloakpkg install testdata/workflow-test.yaml -t os-detection -v
+        run: $CLOAKPKG install testdata/workflow-test.yaml -t os-detection -v
 
       - name: Run NPM Test
         shell: bash
-        run: ./cloakpkg install testdata/workflow-test.yaml -t npm -v
+        run: $CLOAKPKG install testdata/workflow-test.yaml -t npm -v
 
       - name: Run UVX Test
         shell: bash
-        run: ./cloakpkg install testdata/workflow-test.yaml -t uvx -v
+        run: $CLOAKPKG install testdata/workflow-test.yaml -t uvx -v
 
       - name: Run Snap Tests (Ubuntu Only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo ./cloakpkg install testdata/workflow-test.yaml -t snap -v
-          sudo ./cloakpkg install testdata/workflow-test.yaml -t snap-classic -v
+          sudo $CLOAKPKG install testdata/workflow-test.yaml -t snap -v
+          sudo $CLOAKPKG install testdata/workflow-test.yaml -t snap-classic -v
 
       - name: Run Flatpak Test (Ubuntu Only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo ./cloakpkg install testdata/workflow-test.yaml -t flatpak -v
+          sudo $CLOAKPKG install testdata/workflow-test.yaml -t flatpak -v
 
       - name: Run Brew Cask Test (macOS Only)
         if: matrix.os == 'macos-latest'
         run: |
-          ./cloakpkg install testdata/workflow-test.yaml -t brew-cask -v
+          $CLOAKPKG install testdata/workflow-test.yaml -t brew-cask -v
 
       - name: Run All-Available Providers Test
         shell: bash
-        run: ./cloakpkg install testdata/workflow-test-no-priority.yaml -v
+        run: $CLOAKPKG install testdata/workflow-test-no-priority.yaml -v
 
       - name: Run Check Command
         shell: bash
-        run: ./cloakpkg check testdata/workflow-test.yaml
+        run: $CLOAKPKG check testdata/workflow-test.yaml
 
       - name: Run Uninstall Test
         shell: bash
         run: |
           # Use sudo on Linux for system package managers
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo ./cloakpkg uninstall testdata/workflow-test.yaml -t apt,snap,snap-classic -v
+            sudo $CLOAKPKG uninstall testdata/workflow-test.yaml -t apt,snap,snap-classic -v
           fi
-          ./cloakpkg uninstall testdata/workflow-test.yaml -t npm,uvx,brew -v
+          $CLOAKPKG uninstall testdata/workflow-test.yaml -t npm,uvx,brew -v
 
   linux-distros:
     name: Linux Distro ${{ matrix.distro }}
