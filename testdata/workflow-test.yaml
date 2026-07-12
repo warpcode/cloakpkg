@@ -2,28 +2,17 @@ settings:
   provider_priority: [brew, apt, dnf, pacman, snap, flatpak, npm, uvx, custom]
 
 bundles:
-  # Basic package manager tests
-  test-apt:
-    tags: [apt]
+  # Consolidated system package test
+  # This tests that cloakpkg auto-delegates to the correct available system provider
+  test-system-pkg:
+    tags: [system]
     providers:
       apt:
         packages: [sl]
-
-  test-dnf:
-    tags: [dnf]
-    providers:
       dnf:
         packages: [sl]
-
-  test-pacman:
-    tags: [pacman]
-    providers:
       pacman:
         packages: [sl]
-
-  test-brew:
-    tags: [brew]
-    providers:
       brew:
         packages: [sl]
 
@@ -71,6 +60,21 @@ bundles:
       uvx:
         packages: [pycowsay]
 
+  # Prerequisites bundles for CI environment setup
+  uv-mise-unix:
+    tags: [prereqs-unix]
+    providers:
+      custom:
+        detect: "uv --version && mise --version"
+        install: "curl -LsSf https://astral.sh/uv/install.sh | sh && curl https://mise.run | sh"
+
+  uv-windows:
+    tags: [prereqs-windows]
+    providers:
+      custom:
+        detect: "uv --version"
+        install: "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
+
   # Hierarchy and Priority tests
   test-hierarchy:
     tags: [hierarchy]
@@ -85,14 +89,13 @@ bundles:
       pacman:
         packages: [sl]
       custom:
-        # Cross-platform check: command -v is sh, where is cmd
+        # Cross-platform check
         detect: "sl --version"
         install: "echo 'Fallback to custom install'"
 
   test-all-available:
     tags: [all-available]
     description: "Tests execution of all available providers when priority is empty"
-    # To test this, we'll need a different config or run with a config that has empty priority
     providers:
       npm:
         packages: [is-sorted]
@@ -104,6 +107,6 @@ bundles:
     tags: [os-detection]
     providers:
       custom:
-        # Cross-platform check (sh-compatible on Unix, cmd-compatible on Windows)
+        # Cross-platform check
         detect: "echo Testing-OS-Detection"
         install: "echo OS-detected-successfully"

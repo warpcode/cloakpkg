@@ -26,62 +26,55 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Install Prerequisites (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          # Install UV
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Install Mise
-          curl https://mise.run | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install Prerequisites (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          # Install UV
-          powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-          echo "$env:USERPROFILE\.local\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-          # Mise is not officially supported on Windows, so we skip it or use a workaround if needed.
-          # For now, we'll just skip it as per review feedback.
-
-      - name: Install Prerequisites (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sl flatpak
-          sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-
-      - name: Install Prerequisites (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install sl
-
       - name: Build cloakpkg
         run: |
           if [ "${{ runner.os }}" = "Windows" ]; then
             go build -buildvcs=false -o cloakpkg.exe .
-          else
-            go build -buildvcs=false -o cloakpkg .
-          fi
-        shell: bash
-
-      - name: Set Cloakpkg Binary Path
-        run: |
-          if [ "${{ runner.os }}" = "Windows" ]; then
             echo "CLOAKPKG=./cloakpkg.exe" >> $GITHUB_ENV
           else
+            go build -buildvcs=false -o cloakpkg .
             echo "CLOAKPKG=./cloakpkg" >> $GITHUB_ENV
           fi
         shell: bash
 
+      - name: Install Prerequisites (System)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y sl flatpak
+            sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            brew install sl
+          fi
+
+      - name: Install Tools via Cloakpkg (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          $CLOAKPKG install testdata/workflow-test.yaml -t prereqs-unix -v
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install Tools via Cloakpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          $CLOAKPKG install testdata/workflow-test.yaml -t prereqs-windows -v
+          echo "$USERPROFILE/.local/bin" >> $GITHUB_PATH
+
       - name: Verify Installer Availability
         shell: bash
         run: $CLOAKPKG list-installers
+
+      - name: Run Consolidated System Test
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            sudo $CLOAKPKG install testdata/workflow-test.yaml -t system -v
+          else
+            $CLOAKPKG install testdata/workflow-test.yaml -t system -v
+          fi
 
       - name: Run Hierarchy Test (Dry-run)
         shell: bash
@@ -128,7 +121,7 @@ jobs:
         run: |
           # Use sudo on Linux for system package managers
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo $CLOAKPKG uninstall testdata/workflow-test.yaml -t apt,snap,snap-classic -v
+            sudo $CLOAKPKG uninstall testdata/workflow-test.yaml -t system,snap,snap-classic -v
           fi
           $CLOAKPKG uninstall testdata/workflow-test.yaml -t npm,uvx,brew -v
 
@@ -145,7 +138,7 @@ jobs:
     steps:
       - name: Install Prerequisites (Fedora)
         if: matrix.distro == 'fedora'
-        run: dnf install -y go git curl findutils nodejs npm
+        run: dnf install -y golang git curl findutils nodejs npm
 
       - name: Install Prerequisites (Arch)
         if: matrix.distro == 'archlinux'
@@ -158,28 +151,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install UV & Mise
-        shell: bash
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          curl https://mise.run | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
       - name: Build cloakpkg
         run: go build -buildvcs=false -o cloakpkg .
+
+      - name: Install UV & Mise via Cloakpkg
+        shell: bash
+        run: |
+          ./cloakpkg install testdata/workflow-test.yaml -t prereqs-unix -v
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify Installer Availability
         run: ./cloakpkg list-installers
 
-      - name: Run Distro Specific Test
-        shell: bash
-        run: |
-          if [[ "${{ matrix.distro }}" == "fedora" ]]; then
-            ./cloakpkg install testdata/workflow-test.yaml -t dnf -v
-          else
-            ./cloakpkg install testdata/workflow-test.yaml -t pacman -v
-          fi
+      - name: Run Consolidated System Test
+        run: ./cloakpkg install testdata/workflow-test.yaml -t system -v
 
       - name: Run Hierarchy Test
         run: ./cloakpkg install testdata/workflow-test.yaml -t hierarchy -v
