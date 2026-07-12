@@ -69,6 +69,14 @@ bundles:
       brew:
         packages: [sl]
 
+  distro-prereqs:
+    tags: [prereqs-distro]
+    providers:
+      dnf:
+        packages: [golang, git, curl, findutils, nodejs, npm]
+      pacman:
+        packages: [go, git, curl, base-devel, nodejs, npm]
+
   uv-mise-unix:
     tags: [prereqs-unix]
     providers:

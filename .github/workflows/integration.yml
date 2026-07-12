@@ -139,23 +139,25 @@ jobs:
       image: ${{ matrix.distro == 'fedora' && 'fedora:latest' || 'archlinux:latest' }}
 
     steps:
-      - name: Install Prerequisites (Fedora)
-        if: matrix.distro == 'fedora'
-        run: dnf install -y golang git curl findutils nodejs npm
-
-      - name: Install Prerequisites (Arch)
-        if: matrix.distro == 'archlinux'
+      - name: Install Prerequisites (Update/Init)
         run: |
-          pacman-key --init
-          pacman-key --populate archlinux
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm go git curl base-devel nodejs npm
+          if [ "${{ matrix.distro }}" = "archlinux" ]; then
+            pacman-key --init
+            pacman-key --populate archlinux
+            pacman -Syu --noconfirm
+            pacman -S --noconfirm git go curl
+          elif [ "${{ matrix.distro }}" = "fedora" ]; then
+            dnf install -y git golang curl
+          fi
 
       - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Build cloakpkg
         run: go build -buildvcs=false -o cloakpkg .
+
+      - name: Install Distro Prerequisites via Cloakpkg
+        run: ./cloakpkg install testdata/workflow-test.yaml -t prereqs-distro -v
 
       - name: Install UV & Mise via Cloakpkg
         shell: bash
