@@ -11,7 +11,7 @@ type Pacman struct{}
 func (p *Pacman) Name() string    { return "pacman" }
 func (p *Pacman) Available() bool { return runner.CommandExists("pacman") }
 func (p *Pacman) Installed(pkg config.Package) bool {
-	return runner.RunCheck("pacman", "-Qq", pkg.Name) == nil
+	return runner.RunCheck("pacman", "-Qq", "--", pkg.Name) == nil
 }
 
 func (p *Pacman) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {

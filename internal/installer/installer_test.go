@@ -263,7 +263,9 @@ func TestPacmanInstall(t *testing.T) {
 		runner.DefaultCheckExecutor = origCheck
 	}()
 
+	var checkedCmds [][]string
 	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		checkedCmds = append(checkedCmds, append([]string{bin}, args...))
 		return fmt.Errorf("not installed")
 	}
 
@@ -285,6 +287,17 @@ func TestPacmanInstall(t *testing.T) {
 	err := pacman.Install(false, false, pkgs)
 	if err != nil {
 		t.Fatalf("Install failed: %v", err)
+	}
+
+	if len(checkedCmds) == 0 {
+		t.Fatalf("Expected check command to be executed, but none was")
+	}
+	checkCmd := checkedCmds[0]
+	if len(checkCmd) < 4 {
+		t.Fatalf("Expected checked command to have at least 4 arguments, got %d", len(checkCmd))
+	}
+	if checkCmd[0] != "pacman" || checkCmd[1] != "-Qq" || checkCmd[2] != "--" || checkCmd[3] != "git" {
+		t.Errorf("Unexpected check command executed: %v", checkCmd)
 	}
 
 	if len(executedCmds) == 0 {
