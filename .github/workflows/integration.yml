@@ -135,6 +135,8 @@ jobs:
       - name: Install Prerequisites (Arch)
         if: matrix.distro == 'archlinux'
         run: |
+          pacman-key --init
+          pacman-key --populate archlinux
           pacman -Syu --noconfirm
           pacman -S --noconfirm go git curl base-devel nodejs npm
 

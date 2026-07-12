@@ -55,7 +55,9 @@ bundles:
       flatpak:
         repositories:
           - source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
-        packages: [org.gnu.Hello]
+        packages:
+          - name: org.gnu.Hello
+            extra_params: ["flathub"]
 
   test-npm:
     tags: [npm]
