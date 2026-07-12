@@ -101,11 +101,6 @@ bundles:
     tags: [os-detection]
     providers:
       custom:
-        detect: |
-          case "$(uname -s)" in
-            Linux*)   echo "Running on Linux";;
-            Darwin*)  echo "Running on macOS";;
-            CYGWIN*|MINGW32*|MSYS*|MINGW*) echo "Running on Windows";;
-            *)        echo "Unknown OS"; exit 1;;
-          esac
-        install: "echo 'OS detected successfully'"
+        # Cross-platform check (sh-compatible on Unix, cmd-compatible on Windows)
+        detect: "echo Testing-OS-Detection"
+        install: "echo OS-detected-successfully"

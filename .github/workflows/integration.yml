@@ -93,7 +93,7 @@ jobs:
       - name: Run Flatpak Test (Ubuntu Only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          ./cloakpkg install testdata/workflow-test.yaml -t flatpak -v
+          sudo ./cloakpkg install testdata/workflow-test.yaml -t flatpak -v
 
       - name: Run Brew Cask Test (macOS Only)
         if: matrix.os == 'macos-latest'
@@ -150,7 +150,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build cloakpkg
-        run: go build -o cloakpkg .
+        run: go build -buildvcs=false -o cloakpkg .
 
       - name: Verify Installer Availability
         run: ./cloakpkg list-installers
