@@ -45,7 +45,7 @@ bundles:
         repositories:
           - source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
         packages:
-          - name: org.gnome.HexEditor
+          - name: org.gnome.GHex
             extra_params: ["flathub"]
 
   test-npm:
@@ -61,6 +61,14 @@ bundles:
         packages: [pycowsay]
 
   # Prerequisites bundles for CI environment setup
+  system-prereqs:
+    tags: [prereqs-system]
+    providers:
+      apt:
+        packages: [sl, flatpak]
+      brew:
+        packages: [sl]
+
   uv-mise-unix:
     tags: [prereqs-unix]
     providers:

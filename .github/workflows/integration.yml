@@ -37,16 +37,19 @@ jobs:
           fi
         shell: bash
 
-      - name: Install Prerequisites (System)
+      - name: Install Prerequisites (Update APT)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update
+
+      - name: Install Prerequisites (System via Cloakpkg)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y sl flatpak
+            sudo $CLOAKPKG install testdata/workflow-test.yaml -t prereqs-system -v
             sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            brew install sl
+          else
+            $CLOAKPKG install testdata/workflow-test.yaml -t prereqs-system -v
           fi
 
       - name: Install Tools via Cloakpkg (Unix)
