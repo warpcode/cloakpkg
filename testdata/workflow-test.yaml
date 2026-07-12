@@ -1,0 +1,111 @@
+settings:
+  provider_priority: [brew, apt, dnf, pacman, snap, flatpak, npm, uvx, custom]
+
+bundles:
+  # Basic package manager tests
+  test-apt:
+    tags: [apt]
+    providers:
+      apt:
+        packages: [hello]
+
+  test-dnf:
+    tags: [dnf]
+    providers:
+      dnf:
+        packages: [hello]
+
+  test-pacman:
+    tags: [pacman]
+    providers:
+      pacman:
+        packages: [hello]
+
+  test-brew:
+    tags: [brew]
+    providers:
+      brew:
+        packages: [hello]
+
+  test-brew-cask:
+    tags: [brew-cask]
+    providers:
+      brew:
+        packages:
+          - name: font-inter
+            extra_params: ["--cask"]
+
+  test-snap:
+    tags: [snap]
+    providers:
+      snap:
+        packages: [hello-world]
+
+  test-snap-classic:
+    tags: [snap-classic]
+    providers:
+      snap:
+        packages:
+          - name: hello-world
+            extra_params: ["--classic"]
+
+  test-flatpak:
+    tags: [flatpak]
+    providers:
+      flatpak:
+        repositories:
+          - source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
+        packages: [org.gnu.Hello]
+
+  test-npm:
+    tags: [npm]
+    providers:
+      npm:
+        packages: [is-sorted]
+
+  test-uvx:
+    tags: [uvx]
+    providers:
+      uvx:
+        packages: [pycowsay]
+
+  # Hierarchy and Priority tests
+  test-hierarchy:
+    tags: [hierarchy]
+    description: "Tests that the first available provider is chosen"
+    providers:
+      brew:
+        packages: [hello]
+      apt:
+        packages: [hello]
+      dnf:
+        packages: [hello]
+      pacman:
+        packages: [hello]
+      custom:
+        detect: "command -v hello"
+        install: "echo 'Fallback to custom install'"
+
+  test-all-available:
+    tags: [all-available]
+    description: "Tests execution of all available providers when priority is empty"
+    # To test this, we'll need a different config or run with a config that has empty priority
+    providers:
+      npm:
+        packages: [is-sorted]
+      custom:
+        install: "echo 'Custom provider running alongside npm'"
+
+  # OS detection test (via custom detect)
+  test-os-detection:
+    tags: [os-detection]
+    providers:
+      custom:
+        detect: |
+          case "$(uname -s)" in
+            Linux*)   echo "Running on Linux";;
+            Darwin*)  echo "Running on macOS";;
+            CYGWIN*|MINGW32*|MSYS*|MINGW*) echo "Running on Windows";;
+            *)        echo "Unknown OS"; exit 1;;
+          esac
+        install: "echo 'OS detected successfully'"
