@@ -184,10 +184,7 @@ func (a *Apt) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 		} else if repo.Source != "" {
 			alreadyAdded := false
 			if !dryRun {
-				searchTerm := repo.Source
-				if strings.HasPrefix(searchTerm, "ppa:") {
-					searchTerm = strings.TrimPrefix(searchTerm, "ppa:")
-				}
+				searchTerm := strings.TrimPrefix(repo.Source, "ppa:")
 
 				args := []string{"-q", "-r", searchTerm, "/etc/apt/sources.list"}
 				if _, err := os.Stat("/etc/apt/sources.list.d"); err == nil {
@@ -248,6 +245,7 @@ func (a *Apt) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to install packages %v: %w", toInstall, err)
@@ -275,6 +273,7 @@ func (a *Apt) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 		}
 		args := []string{"remove", "-y"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to uninstall packages %v: %w", toUninstall, err)
@@ -296,6 +295,7 @@ func (a *Apt) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install", "-y", "--only-upgrade"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "apt-get", args...); err != nil {
 			return fmt.Errorf("apt: failed to update packages %v: %w", toUpdate, err)

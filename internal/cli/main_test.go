@@ -74,11 +74,15 @@ func TestMatchTags(t *testing.T) {
 func TestBundleCommandLifecycle(t *testing.T) {
 	// Mock executor & exists
 	origExecutor := runner.DefaultExecutor
+	origShellExecutor := runner.DefaultShellExecutor
+	origShellCheckExecutor := runner.DefaultShellCheckExecutor
 	origExists := runner.CommandExists
 	origCheck := runner.DefaultCheckExecutor
 	origCheckOutput := runner.DefaultCheckOutputExecutor
 	defer func() {
 		runner.DefaultExecutor = origExecutor
+		runner.DefaultShellExecutor = origShellExecutor
+		runner.DefaultShellCheckExecutor = origShellCheckExecutor
 		runner.CommandExists = origExists
 		runner.DefaultCheckExecutor = origCheck
 		runner.DefaultCheckOutputExecutor = origCheckOutput
@@ -88,6 +92,14 @@ func TestBundleCommandLifecycle(t *testing.T) {
 	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 		executedCmds = append(executedCmds, append([]string{bin}, args...))
 		return nil
+	}
+	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
+		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
+		return nil
+	}
+	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
+		executedCmds = append(executedCmds, []string{"/bin/sh", "-c", cmdStr})
+		return os.ErrNotExist // Mock detect failed
 	}
 	runner.CommandExists = func(name string) bool {
 		// Mock npm, brew, and apt as available
@@ -308,12 +320,29 @@ func TestBundleCommandLifecycle(t *testing.T) {
 		t.Errorf("Expected exactly 1 apt command, got %d: %v", len(aptCmds), aptCmds)
 	} else {
 		cmd := aptCmds[0]
-		if cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "neovim" {
+		if cmd[1] != "install" || cmd[2] != "-y" || cmd[3] != "--" || cmd[4] != "neovim" {
 			t.Errorf("Unexpected apt command structure: %v", cmd)
 		}
 	}
 
-	// 4. Verify tag filtering (htop was excluded)
+	// 4. Verify Custom execution
+	if len(customCmds) != 2 {
+		t.Errorf("Expected exactly 2 custom commands (1 detect, 1 install), got %d: %v", len(customCmds), customCmds)
+	} else {
+		// First custom command is the detect check
+		detectCmd := customCmds[0]
+		if detectCmd[1] != "-c" || detectCmd[2] != "echo 'checking custom'" {
+			t.Errorf("Unexpected custom detect command: %v", detectCmd)
+		}
+
+		// Second custom command is the install
+		installCmd := customCmds[1]
+		if installCmd[1] != "-c" || installCmd[2] != "echo 'installing custom'" {
+			t.Errorf("Unexpected custom install command: %v", installCmd)
+		}
+	}
+
+	// 5. Verify tag filtering (htop was excluded)
 	for _, cmd := range executedCmds {
 		for _, arg := range cmd {
 			if arg == "htop" {

@@ -13,7 +13,6 @@ func TestCliPackages(t *testing.T) {
 		// We expect:
 		// 1. Mise installs: jq, yq, fzf, bat, gomplate, gh, lazygit, neovim@0.11.6, uv
 		// 2. Brew installs: tmux, screen, rsync
-		
 		miseCmd := findCommand(executed, "mise", "install")
 		brewCmd := findCommand(executed, "brew", "install")
 

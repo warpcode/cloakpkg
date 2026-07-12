@@ -22,7 +22,7 @@ func TestIntegrationPackages(t *testing.T) {
 			"docker-buildx-plugin": true,
 			"docker-compose-plugin": true,
 		}
-		for _, arg := range cmd[3:] {
+		for _, arg := range cmd[4:] {
 			delete(expectedPkgs, arg)
 		}
 		if len(expectedPkgs) > 0 {

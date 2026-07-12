@@ -62,10 +62,7 @@ func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 		}
 
 		isCopr := repo.Type == "copr" || strings.HasPrefix(repo.Source, "copr:")
-		cleanSource := repo.Source
-		if strings.HasPrefix(cleanSource, "copr:") {
-			cleanSource = strings.TrimPrefix(cleanSource, "copr:")
-		}
+		cleanSource := strings.TrimPrefix(repo.Source, "copr:")
 
 		isRepoFile := repo.Type == "repo" || (repo.Keyring != "" && strings.HasSuffix(repo.Keyring, ".repo"))
 
