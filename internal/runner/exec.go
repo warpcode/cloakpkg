@@ -72,7 +72,7 @@ func Run(verbose bool, dryRun bool, bin string, args ...string) error {
 
 // RunSudo executes a command prefixed with sudo if not running as root.
 func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
-	if os.Geteuid() == 0 {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
 		return Run(verbose, dryRun, bin, args...)
 	}
 
