@@ -237,7 +237,7 @@ func (a *Apt) bulkInstalled(pkgs []config.Package) map[string]bool {
 		pkgNames = append(pkgNames, pkg.Name)
 	}
 
-	args := append([]string{"-W", "-f=${Package} ${Status}\n"}, pkgNames...)
+	args := append([]string{"-W", "-f=${Package} ${Status}\n", "--"}, pkgNames...)
 	out, _ := runner.RunCheckOutput("dpkg-query", args...)
 
 	lines := strings.Split(out, "\n")
@@ -249,7 +249,7 @@ func (a *Apt) bulkInstalled(pkgs []config.Package) map[string]bool {
 		if len(parts) == 2 {
 			pkgName := parts[0]
 			status := parts[1]
-			if strings.Contains(status, "install ok installed") {
+			if strings.HasSuffix(status, " installed") {
 				installedMap[pkgName] = true
 			}
 		}
