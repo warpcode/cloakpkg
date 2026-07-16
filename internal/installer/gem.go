@@ -15,6 +15,15 @@ func (g *Gem) Installed(pkg config.Package) bool {
 }
 
 func (g *Gem) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {
+	for _, repo := range repos {
+		if repo.URL != "" {
+			fmt.Printf("Adding Gem repository %s...\n", repo.URL)
+			err := runner.ExecuteCommand(verbose, dryRun, "gem", []string{"sources", "-a", repo.URL}, []string{})
+			if err != nil {
+				return fmt.Errorf("gem: failed to add repository %s: %w", repo.URL, err)
+			}
+		}
+	}
 	return nil
 }
 

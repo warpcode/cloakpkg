@@ -46,6 +46,7 @@ type Hooks struct {
 
 type Repository struct {
 	Source  string `yaml:"source" json:"source"`
+	URL     string `yaml:"url,omitempty" json:"url,omitempty"`
 	KeyURL  string `yaml:"key_url,omitempty" json:"key_url,omitempty"`
 	Keyring string `yaml:"keyring,omitempty" json:"keyring,omitempty"`
 	Type    string `yaml:"type,omitempty" json:"type,omitempty"`
