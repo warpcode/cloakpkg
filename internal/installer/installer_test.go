@@ -323,3 +323,58 @@ func TestPacmanInstall(t *testing.T) {
 		}
 	}
 }
+
+func TestSnapInstall(t *testing.T) {
+	// Save originals to restore at the end
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheck := runner.DefaultCheckExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckExecutor = origCheck
+	}()
+
+	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		return fmt.Errorf("not installed")
+	}
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "snap"
+	}
+
+	snap := &Snap{}
+	if !snap.Available() {
+		t.Error("Snap should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "docker", ExtraParams: []string{"--classic"}},
+	}
+
+	err := snap.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	// Since os.Geteuid() is likely not root (0), RunSudo will execute "sudo snap ..."
+	if cmd[0] == "sudo" {
+		if cmd[1] != "snap" || cmd[2] != "install" || cmd[3] != "--classic" || cmd[4] != "--" || cmd[5] != "docker" {
+			t.Errorf("Unexpected sudo command: %v", cmd)
+		}
+	} else {
+		if cmd[0] != "snap" || cmd[1] != "install" || cmd[2] != "--classic" || cmd[3] != "--" || cmd[4] != "docker" {
+			t.Errorf("Unexpected non-sudo command: %v", cmd)
+		}
+	}
+}
