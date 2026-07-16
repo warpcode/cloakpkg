@@ -58,6 +58,36 @@ func TestMatchTags(t *testing.T) {
 			excludeTags: map[string]bool{"cli": true},
 			expected:    false,
 		},
+		{
+			name:        "Empty bundle tags with include filter",
+			bundleTags:  []string{},
+			includeTags: map[string]bool{"core": true},
+			expected:    false,
+		},
+		{
+			name:        "Empty bundle tags with exclude filter",
+			bundleTags:  []string{},
+			excludeTags: map[string]bool{"core": true},
+			expected:    true,
+		},
+		{
+			name:        "Nil bundle tags with include filter",
+			bundleTags:  nil,
+			includeTags: map[string]bool{"core": true},
+			expected:    false,
+		},
+		{
+			name:        "Multiple bundle tags, one matches include",
+			bundleTags:  []string{"core", "cli", "dev"},
+			includeTags: map[string]bool{"cli": true},
+			expected:    true,
+		},
+		{
+			name:        "Multiple bundle tags, one matches exclude",
+			bundleTags:  []string{"core", "cli", "dev"},
+			excludeTags: map[string]bool{"dev": true},
+			expected:    false,
+		},
 	}
 
 	for _, tc := range tests {
