@@ -226,13 +226,50 @@ func (a *Apt) Installed(pkg config.Package) bool {
 	return runner.RunCheck("dpkg", "-s", pkg.Name) == nil
 }
 
+func (a *Apt) bulkInstalled(pkgs []config.Package) map[string]bool {
+	installedMap := make(map[string]bool)
+	if len(pkgs) == 0 {
+		return installedMap
+	}
+
+	var pkgNames []string
+	for _, pkg := range pkgs {
+		pkgNames = append(pkgNames, pkg.Name)
+	}
+
+	args := append([]string{"-W", "-f=${Package} ${Status}\n", "--"}, pkgNames...)
+	out, _ := runner.RunCheckOutput("dpkg-query", args...)
+
+	lines := strings.Split(out, "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, " ", 2)
+		if len(parts) == 2 {
+			pkgName := parts[0]
+			status := parts[1]
+			if strings.HasSuffix(status, " installed") {
+				installedMap[pkgName] = true
+			}
+		}
+	}
+	return installedMap
+}
+
 func (a *Apt) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 	keys, groups := GroupPackagesByExtraParams(pkgs)
 	for _, key := range keys {
 		group := groups[key]
 		var toInstall []string
+
+		var installedMap map[string]bool
+		if !dryRun {
+			installedMap = a.bulkInstalled(group)
+		}
+
 		for _, pkg := range group {
-			if !dryRun && a.Installed(pkg) {
+			if !dryRun && installedMap[pkg.Name] {
 				if verbose {
 					fmt.Printf("apt: package %s is already installed, skipping\n", pkg.Name)
 				}
@@ -259,8 +296,14 @@ func (a *Apt) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 	for _, key := range keys {
 		group := groups[key]
 		var toUninstall []string
+
+		var installedMap map[string]bool
+		if !dryRun {
+			installedMap = a.bulkInstalled(group)
+		}
+
 		for _, pkg := range group {
-			if !dryRun && !a.Installed(pkg) {
+			if !dryRun && !installedMap[pkg.Name] {
 				if verbose {
 					fmt.Printf("apt: package %s is not installed, skipping\n", pkg.Name)
 				}

@@ -13,14 +13,19 @@ func TestAptInstall(t *testing.T) {
 	origExecutor := runner.DefaultExecutor
 	origExists := runner.CommandExists
 	origCheck := runner.DefaultCheckExecutor
+	origCheckOutput := runner.DefaultCheckOutputExecutor
 	defer func() {
 		runner.DefaultExecutor = origExecutor
 		runner.CommandExists = origExists
 		runner.DefaultCheckExecutor = origCheck
+		runner.DefaultCheckOutputExecutor = origCheckOutput
 	}()
 
 	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
 		return fmt.Errorf("not installed")
+	}
+	runner.DefaultCheckOutputExecutor = func(bin string, args ...string) ([]byte, error) {
+		return []byte(""), nil
 	}
 
 	var executedCmds [][]string
