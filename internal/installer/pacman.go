@@ -15,6 +15,9 @@ func (p *Pacman) Installed(pkg config.Package) bool {
 }
 
 func (p *Pacman) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {
+	for _, repo := range repos {
+		fmt.Printf("Pacman does not currently support automatically adding repositories (%s). Skipping...\n", repo.Source)
+	}
 	return nil
 }
 

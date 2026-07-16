@@ -323,3 +323,124 @@ func TestPacmanInstall(t *testing.T) {
 		}
 	}
 }
+
+func TestPacmanUninstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheck := runner.DefaultCheckExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckExecutor = origCheck
+	}()
+
+	var checkedCmds [][]string
+	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		checkedCmds = append(checkedCmds, append([]string{bin}, args...))
+		return nil // Package is installed
+	}
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "pacman"
+	}
+
+	pacman := &Pacman{}
+	if !pacman.Available() {
+		t.Error("Pacman should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "git", ExtraParams: []string{"--quiet"}},
+	}
+
+	err := pacman.Uninstall(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Uninstall failed: %v", err)
+	}
+
+	if len(checkedCmds) == 0 {
+		t.Fatalf("Expected check command to be executed, but none was")
+	}
+	checkCmd := checkedCmds[0]
+	if checkCmd[0] != "pacman" || checkCmd[1] != "-Qq" || checkCmd[2] != "--" || checkCmd[3] != "git" {
+		t.Errorf("Unexpected check command executed: %v", checkCmd)
+	}
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if cmd[0] == "sudo" {
+		if len(cmd) < 7 || cmd[1] != "pacman" || cmd[2] != "-R" || cmd[3] != "--noconfirm" || cmd[4] != "--quiet" || cmd[5] != "--" || cmd[6] != "git" {
+			t.Errorf("Unexpected sudo command: %v", cmd)
+		}
+	} else {
+		if len(cmd) < 6 || cmd[0] != "pacman" || cmd[1] != "-R" || cmd[2] != "--noconfirm" || cmd[3] != "--quiet" || cmd[4] != "--" || cmd[5] != "git" {
+			t.Errorf("Unexpected non-sudo command: %v", cmd)
+		}
+	}
+}
+
+func TestPacmanUpdate(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+	}()
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "pacman"
+	}
+
+	pacman := &Pacman{}
+	if !pacman.Available() {
+		t.Error("Pacman should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "git", ExtraParams: []string{"--quiet"}},
+	}
+
+	err := pacman.Update(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if cmd[0] == "sudo" {
+		if len(cmd) < 7 || cmd[1] != "pacman" || cmd[2] != "-S" || cmd[3] != "--noconfirm" || cmd[4] != "--quiet" || cmd[5] != "--" || cmd[6] != "git" {
+			t.Errorf("Unexpected sudo command: %v", cmd)
+		}
+	} else {
+		if len(cmd) < 6 || cmd[0] != "pacman" || cmd[1] != "-S" || cmd[2] != "--noconfirm" || cmd[3] != "--quiet" || cmd[4] != "--" || cmd[5] != "git" {
+			t.Errorf("Unexpected non-sudo command: %v", cmd)
+		}
+	}
+}
+
+func TestPacmanAddRepositories(t *testing.T) {
+	pacman := &Pacman{}
+	repos := []config.Repository{
+		{Source: "dummy-repo"},
+	}
+	err := pacman.AddRepositories(false, false, repos)
+	if err != nil {
+		t.Fatalf("AddRepositories failed: %v", err)
+	}
+}
