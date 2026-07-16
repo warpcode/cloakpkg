@@ -323,3 +323,58 @@ func TestPacmanInstall(t *testing.T) {
 		}
 	}
 }
+
+func TestUvxInstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheckOutput := runner.DefaultCheckOutputExecutor
+	origCheck := runner.DefaultCheckExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckOutputExecutor = origCheckOutput
+		runner.DefaultCheckExecutor = origCheck
+	}()
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "uv"
+	}
+
+	uvx := &Uvx{}
+	if !uvx.Available() {
+		t.Error("Uvx should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "ruff"},
+		{Name: "black", ExtraParams: []string{"--prerelease=allow"}},
+	}
+
+	// Mock uv tool list output to show ruff already installed, but black not
+	runner.DefaultCheckOutputExecutor = func(bin string, args ...string) ([]byte, error) {
+		if bin == "uv" && args[0] == "tool" && args[1] == "list" {
+			return []byte("ruff v0.0.280\n"), nil
+		}
+		return []byte(""), nil
+	}
+
+	err := uvx.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	// Should skip ruff and only execute black!
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if len(cmd) < 5 || cmd[0] != "uv" || cmd[1] != "tool" || cmd[2] != "install" || cmd[3] != "--prerelease=allow" || cmd[4] != "black" {
+		t.Errorf("Unexpected command executed: %v", cmd)
+	}
+}
