@@ -37,6 +37,7 @@ func (s *Snap) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"install"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "snap", args...); err != nil {
 			return fmt.Errorf("snap: failed to install packages %v: %w", toInstall, err)
@@ -69,6 +70,7 @@ func (s *Snap) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error
 				args = append(args, param)
 			}
 		}
+		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "snap", args...); err != nil {
 			return fmt.Errorf("snap: failed to uninstall packages %v: %w", toUninstall, err)
@@ -90,6 +92,7 @@ func (s *Snap) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		}
 		args := []string{"refresh"}
 		args = append(args, group[0].ExtraParams...)
+		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "snap", args...); err != nil {
 			return fmt.Errorf("snap: failed to update packages %v: %w", toUpdate, err)
