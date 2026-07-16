@@ -323,3 +323,53 @@ func TestPacmanInstall(t *testing.T) {
 		}
 	}
 }
+
+func TestPipxInstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheckOutput := runner.DefaultCheckOutputExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckOutputExecutor = origCheckOutput
+	}()
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "pipx"
+	}
+
+	pipx := &Pipx{}
+	if !pipx.Available() {
+		t.Error("Pipx should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "black", ExtraParams: []string{"--global"}},
+		{Name: "pytest"},
+	}
+
+	// Mock pipx list output to show black already installed, but pytest not
+	runner.DefaultCheckOutputExecutor = func(bin string, args ...string) ([]byte, error) {
+		return []byte("venvs are in /home/user/.local/pipx/venvs\napps are exposed on your $PATH at /home/user/.local/bin\n   package black 23.3.0, installed using Python 3.10.12\n"), nil
+	}
+
+	err := pipx.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	// Should skip black and only execute pytest
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if cmd[0] != "pipx" || cmd[1] != "install" || cmd[2] != "pytest" {
+		t.Errorf("Unexpected command executed: %v", cmd)
+	}
+}
