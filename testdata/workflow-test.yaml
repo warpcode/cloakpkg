@@ -1,0 +1,128 @@
+settings:
+  provider_priority: [brew, apt, dnf, pacman, snap, flatpak, npm, uvx, custom]
+
+bundles:
+  # Consolidated system package test
+  # This tests that cloakpkg auto-delegates to the correct available system provider
+  test-system-pkg:
+    tags: [system]
+    providers:
+      apt:
+        packages: [sl]
+      dnf:
+        packages: [sl]
+      pacman:
+        packages: [sl]
+      brew:
+        packages: [sl]
+
+  test-brew-cask:
+    tags: [brew-cask]
+    providers:
+      brew:
+        packages:
+          - name: font-inter
+            extra_params: ["--cask"]
+
+  test-snap:
+    tags: [snap]
+    providers:
+      snap:
+        packages: [hello-world]
+
+  test-snap-classic:
+    tags: [snap-classic]
+    providers:
+      snap:
+        packages:
+          - name: hello-world
+            extra_params: ["--classic"]
+
+  test-flatpak:
+    tags: [flatpak]
+    providers:
+      flatpak:
+        repositories:
+          - source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"
+        packages:
+          - name: org.gnome.GHex
+            extra_params: ["flathub"]
+
+  test-npm:
+    tags: [npm]
+    providers:
+      npm:
+        packages: [is-sorted]
+
+  test-uvx:
+    tags: [uvx]
+    providers:
+      uvx:
+        packages: [pycowsay]
+
+  # Prerequisites bundles for CI environment setup
+  system-prereqs:
+    tags: [prereqs-system]
+    providers:
+      apt:
+        packages: [sl, flatpak]
+      brew:
+        packages: [sl]
+
+  distro-prereqs:
+    tags: [prereqs-distro]
+    providers:
+      dnf:
+        packages: [golang, git, curl, findutils, nodejs, npm]
+      pacman:
+        packages: [go, git, curl, base-devel, nodejs, npm]
+
+  uv-mise-unix:
+    tags: [prereqs-unix]
+    providers:
+      custom:
+        detect: "uv --version && mise --version"
+        install: "curl -LsSf https://astral.sh/uv/install.sh | sh && curl https://mise.run | sh"
+
+  uv-windows:
+    tags: [prereqs-windows]
+    providers:
+      custom:
+        detect: "uv --version"
+        install: "powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\""
+
+  # Hierarchy and Priority tests
+  test-hierarchy:
+    tags: [hierarchy]
+    description: "Tests that the first available provider is chosen"
+    providers:
+      brew:
+        packages: [sl]
+      apt:
+        packages: [sl]
+      dnf:
+        packages: [sl]
+      pacman:
+        packages: [sl]
+      custom:
+        # Cross-platform check
+        detect: "sl --version"
+        install: "echo 'Fallback to custom install'"
+
+  test-all-available:
+    tags: [all-available]
+    description: "Tests execution of all available providers when priority is empty"
+    providers:
+      npm:
+        packages: [is-sorted]
+      custom:
+        install: "echo 'Custom provider running alongside npm'"
+
+  # OS detection test (via custom detect)
+  test-os-detection:
+    tags: [os-detection]
+    providers:
+      custom:
+        # Cross-platform check
+        detect: "echo Testing-OS-Detection"
+        install: "echo OS-detected-successfully"

@@ -63,7 +63,12 @@ func (s *Snap) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error
 			continue
 		}
 		args := []string{"remove"}
-		args = append(args, group[0].ExtraParams...)
+		// Filter out flags that are not valid for 'remove' but might be in ExtraParams (like --classic)
+		for _, param := range group[0].ExtraParams {
+			if param != "--classic" {
+				args = append(args, param)
+			}
+		}
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "snap", args...); err != nil {
 			return fmt.Errorf("snap: failed to uninstall packages %v: %w", toUninstall, err)

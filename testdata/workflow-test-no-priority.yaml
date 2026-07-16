@@ -1,0 +1,12 @@
+settings:
+  provider_priority: []
+
+bundles:
+  test-all-available:
+    tags: [all-available]
+    description: "Tests execution of all available providers when priority is empty"
+    providers:
+      npm:
+        packages: [is-sorted]
+      custom:
+        install: "echo 'Custom provider running alongside npm'"

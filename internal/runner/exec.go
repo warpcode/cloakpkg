@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 )
 
 // CommandExists checks if a binary is available in the user's PATH.
@@ -24,9 +25,14 @@ var DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 	return cmd.Run()
 }
 
-// DefaultShellExecutor runs a command string via /bin/sh. Expose as a variable to allow mocking.
+// DefaultShellExecutor runs a command string via /bin/sh (or cmd /C on Windows). Expose as a variable to allow mocking.
 var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
-	cmd := exec.Command("/bin/sh", "-c", cmdStr)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", cmdStr)
+	} else {
+		cmd = exec.Command("/bin/sh", "-c", cmdStr)
+	}
 	if verbose {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -38,7 +44,12 @@ var DefaultShellExecutor = func(verbose bool, cmdStr string) error {
 
 // DefaultShellCheckExecutor runs a check command silently. Expose as a variable to allow mocking.
 var DefaultShellCheckExecutor = func(cmdStr string) error {
-	cmd := exec.Command("/bin/sh", "-c", cmdStr)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", cmdStr)
+	} else {
+		cmd = exec.Command("/bin/sh", "-c", cmdStr)
+	}
 	return cmd.Run()
 }
 
@@ -61,7 +72,7 @@ func Run(verbose bool, dryRun bool, bin string, args ...string) error {
 
 // RunSudo executes a command prefixed with sudo if not running as root.
 func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
-	if os.Geteuid() == 0 {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
 		return Run(verbose, dryRun, bin, args...)
 	}
 
@@ -69,10 +80,14 @@ func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
 	return Run(verbose, dryRun, "sudo", sudoArgs...)
 }
 
-// RunShell runs a custom script/command string via /bin/sh.
+// RunShell runs a custom script/command string via /bin/sh (or cmd /C on Windows).
 func RunShell(verbose bool, dryRun bool, cmdStr string) error {
 	if dryRun {
-		fmt.Printf("[dry-run] /bin/sh -c %q\n", cmdStr)
+		shell := "/bin/sh -c"
+		if runtime.GOOS == "windows" {
+			shell = "cmd /C"
+		}
+		fmt.Printf("[dry-run] %s %q\n", shell, cmdStr)
 		return nil
 	}
 
