@@ -222,7 +222,7 @@ func TestDeduplicateRepos(t *testing.T) {
 			}
 
 			for i := range result {
-				if result[i].Source != tt.expected[i].Source || result[i].Type != tt.expected[i].Type || result[i].Remote != tt.expected[i].Remote {
+				if result[i] != tt.expected[i] {
 					t.Errorf("at index %d: expected %+v, got %+v", i, tt.expected[i], result[i])
 				}
 			}
