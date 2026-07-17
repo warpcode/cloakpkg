@@ -15,6 +15,17 @@ func (n *Npm) Installed(pkg config.Package) bool {
 }
 
 func (n *Npm) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {
+	for _, repo := range repos {
+		if repo.URL != "" {
+			if verbose {
+				fmt.Printf("Setting npm registry to %s...\n", repo.URL)
+			}
+			args := []string{"config", "set", "registry", repo.URL}
+			if err := runner.Run(verbose, dryRun, "npm", args...); err != nil {
+				return fmt.Errorf("npm: failed to add repository %s: %w", repo.URL, err)
+			}
+		}
+	}
 	return nil
 }
 
