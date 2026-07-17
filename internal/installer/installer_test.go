@@ -410,6 +410,53 @@ func TestPacmanInstall(t *testing.T) {
 	}
 }
 
+func TestGoInstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+	}()
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		if name == "go" {
+			return true
+		}
+		if name == "goimports" {
+			return true
+		}
+		return false
+	}
+
+	goInstaller := &Go{}
+	if !goInstaller.Available() {
+		t.Error("Go should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "golang.org/x/tools/cmd/goimports@latest"},
+		{Name: "github.com/cweill/gotests/gotests@v1.6.0", ExtraParams: []string{"-v"}},
+	}
+
+	err := goInstaller.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if len(cmd) != 4 || cmd[0] != "go" || cmd[1] != "install" || cmd[2] != "-v" || cmd[3] != "github.com/cweill/gotests/gotests@v1.6.0" {
+		t.Errorf("Unexpected command executed: %v", cmd)
+	}
+}
+
 func TestApkInstall(t *testing.T) {
 	origExecutor := runner.DefaultExecutor
 	origExists := runner.CommandExists
