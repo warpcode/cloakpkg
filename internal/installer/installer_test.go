@@ -3,10 +3,96 @@ package installer
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"cloakpkg/internal/config"
 	"cloakpkg/internal/runner"
-	"testing"
 )
+
+func TestGroupPackagesByExtraParams(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgs          []config.Package
+		expectedKeys  []string
+		expectedGroup map[string][]config.Package
+	}{
+		{
+			name:          "empty packages",
+			pkgs:          []config.Package{},
+			expectedKeys:  nil,
+			expectedGroup: map[string][]config.Package{},
+		},
+		{
+			name: "packages without extra params",
+			pkgs: []config.Package{
+				{Name: "git"},
+				{Name: "curl"},
+			},
+			expectedKeys: []string{""},
+			expectedGroup: map[string][]config.Package{
+				"": {
+					{Name: "git"},
+					{Name: "curl"},
+				},
+			},
+		},
+		{
+			name: "packages with different extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet"}},
+				{Name: "curl", ExtraParams: []string{"--silent"}},
+			},
+			expectedKeys: []string{"--quiet", "--silent"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet": {
+					{Name: "git", ExtraParams: []string{"--quiet"}},
+				},
+				"--silent": {
+					{Name: "curl", ExtraParams: []string{"--silent"}},
+				},
+			},
+		},
+		{
+			name: "packages with same extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet"}},
+				{Name: "curl", ExtraParams: []string{"--quiet"}},
+			},
+			expectedKeys: []string{"--quiet"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet": {
+					{Name: "git", ExtraParams: []string{"--quiet"}},
+					{Name: "curl", ExtraParams: []string{"--quiet"}},
+				},
+			},
+		},
+		{
+			name: "packages with multiple extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet", "--force"}},
+			},
+			expectedKeys: []string{"--quiet\x00--force"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet\x00--force": {
+					{Name: "git", ExtraParams: []string{"--quiet", "--force"}},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			keys, group := GroupPackagesByExtraParams(tt.pkgs)
+			if !reflect.DeepEqual(keys, tt.expectedKeys) {
+				t.Errorf("GroupPackagesByExtraParams() keys = %v, want %v", keys, tt.expectedKeys)
+			}
+			if !reflect.DeepEqual(group, tt.expectedGroup) {
+				t.Errorf("GroupPackagesByExtraParams() group = %v, want %v", group, tt.expectedGroup)
+			}
+		})
+	}
+}
 
 func TestAptInstall(t *testing.T) {
 	// Save originals to restore at the end
@@ -331,13 +417,11 @@ func TestGoInstall(t *testing.T) {
 		runner.DefaultExecutor = origExecutor
 		runner.CommandExists = origExists
 	}()
-
 	var executedCmds [][]string
 	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
 		executedCmds = append(executedCmds, append([]string{bin}, args...))
 		return nil
 	}
-
 	runner.CommandExists = func(name string) bool {
 		if name == "go" {
 			return true
@@ -370,5 +454,73 @@ func TestGoInstall(t *testing.T) {
 	cmd := executedCmds[0]
 	if len(cmd) != 4 || cmd[0] != "go" || cmd[1] != "install" || cmd[2] != "-v" || cmd[3] != "github.com/cweill/gotests/gotests@v1.6.0" {
 		t.Errorf("Unexpected command executed: %v", cmd)
+	}
+}
+
+func TestApkInstall(t *testing.T) {
+	origExecutor := runner.DefaultExecutor
+	origExists := runner.CommandExists
+	origCheck := runner.DefaultCheckExecutor
+	origCheckOutput := runner.DefaultCheckOutputExecutor
+	defer func() {
+		runner.DefaultExecutor = origExecutor
+		runner.CommandExists = origExists
+		runner.DefaultCheckExecutor = origCheck
+		runner.DefaultCheckOutputExecutor = origCheckOutput
+	}()
+
+	var checkedCmds [][]string
+	runner.DefaultCheckExecutor = func(bin string, args ...string) error {
+		checkedCmds = append(checkedCmds, append([]string{bin}, args...))
+		return fmt.Errorf("not installed")
+	}
+
+	var executedCmds [][]string
+	runner.DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+		executedCmds = append(executedCmds, append([]string{bin}, args...))
+		return nil
+	}
+	runner.CommandExists = func(name string) bool {
+		return name == "apk"
+	}
+
+	apk := &Apk{}
+	if !apk.Available() {
+		t.Error("Apk should be available")
+	}
+
+	pkgs := []config.Package{
+		{Name: "git", ExtraParams: []string{"--quiet"}},
+	}
+
+	err := apk.Install(false, false, pkgs)
+	if err != nil {
+		t.Fatalf("Install failed: %v", err)
+	}
+
+	if len(checkedCmds) == 0 {
+		t.Fatalf("Expected check command to be executed, but none was")
+	}
+	checkCmd := checkedCmds[0]
+	if len(checkCmd) < 4 {
+		t.Fatalf("Expected checked command to have at least 3 arguments, got %d", len(checkCmd))
+	}
+	if checkCmd[0] != "apk" || checkCmd[1] != "info" || checkCmd[2] != "-e" || checkCmd[3] != "git" {
+		t.Errorf("Unexpected check command executed: %v", checkCmd)
+	}
+
+	if len(executedCmds) != 1 {
+		t.Fatalf("Expected 1 command executed, got %d", len(executedCmds))
+	}
+
+	cmd := executedCmds[0]
+	if cmd[0] == "sudo" {
+		if len(cmd) < 5 || cmd[1] != "apk" || cmd[2] != "add" || cmd[3] != "--quiet" || cmd[4] != "git" {
+			t.Errorf("Unexpected sudo command: %v", cmd)
+		}
+	} else {
+		if len(cmd) < 4 || cmd[0] != "apk" || cmd[1] != "add" || cmd[2] != "--quiet" || cmd[3] != "git" {
+			t.Errorf("Unexpected non-sudo command: %v", cmd)
+		}
 	}
 }
