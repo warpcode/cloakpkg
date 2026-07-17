@@ -61,10 +61,6 @@ func validatePackageNames(pkgs []string) error {
 }
 
 func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {
-	var yumRepoFiles []os.DirEntry
-	var yumRepoFilesErr error
-	var yumRepoFilesRead bool
-
 	for _, r := range repos {
 		repo := r
 		repo.Source = expandRepoVariablesDnf(repo.Source)
@@ -87,12 +83,9 @@ func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 					alreadyAdded = true
 				}
 			} else {
-				if !yumRepoFilesRead {
-					yumRepoFiles, yumRepoFilesErr = os.ReadDir("/etc/yum.repos.d")
-					yumRepoFilesRead = true
-				}
-				if yumRepoFilesErr == nil {
-					for _, file := range yumRepoFiles {
+				files, err := os.ReadDir("/etc/yum.repos.d")
+				if err == nil {
+					for _, file := range files {
 						if file.IsDir() || !strings.HasSuffix(file.Name(), ".repo") {
 							continue
 						}
