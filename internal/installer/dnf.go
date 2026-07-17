@@ -51,6 +51,15 @@ func expandRepoVariablesDnf(s string) string {
 	return s
 }
 
+func validatePackageNames(pkgs []string) error {
+	for _, pkg := range pkgs {
+		if strings.HasPrefix(pkg, "-") {
+			return fmt.Errorf("dnf: invalid package name %q: must not start with '-'", pkg)
+		}
+	}
+	return nil
+}
+
 func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Repository) error {
 	for _, r := range repos {
 		repo := r
@@ -175,9 +184,11 @@ func (d *Dnf) Install(verbose bool, dryRun bool, pkgs []config.Package) error {
 		if len(toInstall) == 0 {
 			continue
 		}
+		if err := validatePackageNames(toInstall); err != nil {
+			return err
+		}
 		args := []string{"install", "-y"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toInstall...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to install packages %v: %w", toInstall, err)
@@ -203,9 +214,11 @@ func (d *Dnf) Uninstall(verbose bool, dryRun bool, pkgs []config.Package) error 
 		if len(toUninstall) == 0 {
 			continue
 		}
+		if err := validatePackageNames(toUninstall); err != nil {
+			return err
+		}
 		args := []string{"remove", "-y"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toUninstall...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to uninstall packages %v: %w", toUninstall, err)
@@ -225,9 +238,11 @@ func (d *Dnf) Update(verbose bool, dryRun bool, pkgs []config.Package) error {
 		if len(toUpdate) == 0 {
 			continue
 		}
+		if err := validatePackageNames(toUpdate); err != nil {
+			return err
+		}
 		args := []string{"upgrade", "-y"}
 		args = append(args, group[0].ExtraParams...)
-		args = append(args, "--")
 		args = append(args, toUpdate...)
 		if err := runner.RunSudo(verbose, dryRun, "dnf", args...); err != nil {
 			return fmt.Errorf("dnf: failed to update packages %v: %w", toUpdate, err)
