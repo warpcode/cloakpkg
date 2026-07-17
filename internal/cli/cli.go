@@ -432,7 +432,6 @@ func executeBuiltinAction(command string, verbose bool, dryRun bool, provName st
 			os.Exit(1)
 		}
 	}
-
 	actionStr := ""
 	switch command {
 	case "install":
@@ -443,12 +442,10 @@ func executeBuiltinAction(command string, verbose bool, dryRun bool, provName st
 		actionStr = "Updating"
 	}
 	fmt.Printf("%s packages for provider %q...\n", actionStr, provName)
-
 	if err := actionFunc(verbose, dryRun, pkgs); err != nil {
 		fmt.Fprintf(os.Stderr, "  Error %s built-in provider %s: %v\n", strings.ToLower(actionStr), provName, err)
 		os.Exit(1)
 	}
-
 	for _, bName := range bundles {
 		b := cfg.Bundles[bName]
 		if err := runPostHooks(verbose, dryRun, command, provName, bName, b); err != nil {
@@ -463,7 +460,6 @@ func executeCustomAction(command string, verbose bool, dryRun bool, bundleName s
 		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 		os.Exit(1)
 	}
-
 	actionStr := ""
 	switch command {
 	case "install":
@@ -474,12 +470,10 @@ func executeCustomAction(command string, verbose bool, dryRun bool, bundleName s
 		actionStr = "Updating"
 	}
 	fmt.Printf("%s custom provider for bundle %q...\n", actionStr, bundleName)
-
 	if err := actionFunc(verbose, dryRun, provider); err != nil {
 		fmt.Fprintf(os.Stderr, "  Error %s custom provider: %v\n", strings.ToLower(actionStr), err)
 		os.Exit(1)
 	}
-
 	if err := runPostHooks(verbose, dryRun, command, "custom", bundleName, b); err != nil {
 		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 		os.Exit(1)
