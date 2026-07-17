@@ -3,6 +3,7 @@ package installer
 import (
 	"cloakpkg/internal/config"
 	"cloakpkg/internal/runner"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -136,8 +137,9 @@ func TestDnfAddRepositories(t *testing.T) {
 	if cmd1[0] == "sudo" {
 		cmd1 = cmd1[1:]
 	}
-	if len(cmd1) < 3 || cmd1[0] != "cp" || !strings.HasSuffix(cmd1[2], "/etc/yum.repos.d/test.repo") {
-		t.Errorf("Unexpected first command (expected cp to /etc/yum.repos.d/test.repo): %v", cmd1)
+	expectedPath := filepath.Join("/etc/yum.repos.d", "test.repo")
+	if len(cmd1) < 3 || cmd1[0] != "cp" || !strings.HasSuffix(cmd1[2], expectedPath) {
+		t.Errorf("Unexpected first command (expected cp to %s): %v", expectedPath, cmd1)
 	}
 
 	// Second command: dnf copr enable -y user/project
