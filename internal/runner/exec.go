@@ -128,3 +128,8 @@ func RunCheckOutput(bin string, args ...string) (string, error) {
 	out, err := DefaultCheckOutputExecutor(bin, args...)
 	return string(out), err
 }
+
+// ExecuteCommand is an alias for Run to match the requested API
+func ExecuteCommand(verbose bool, dryRun bool, bin string, args []string, _ []string) error {
+	return Run(verbose, dryRun, bin, args...)
+}
