@@ -10,7 +10,7 @@ import (
 
 type Termux struct{}
 
-func (t *Termux) Name() string { return "termux" }
+func (t *Termux) Name() string    { return "termux" }
 func (t *Termux) Available() bool {
 	if !runner.CommandExists("pkg") {
 		return false

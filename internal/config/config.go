@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -46,6 +46,7 @@ type Hooks struct {
 
 type Repository struct {
 	Source  string `yaml:"source" json:"source"`
+	URL     string `yaml:"url,omitempty" json:"url,omitempty"`
 	KeyURL  string `yaml:"key_url,omitempty" json:"key_url,omitempty"`
 	Keyring string `yaml:"keyring,omitempty" json:"keyring,omitempty"`
 	Type    string `yaml:"type,omitempty" json:"type,omitempty"`
@@ -117,6 +118,7 @@ func (p *Package) UnmarshalJSON(b []byte) error {
 	*p = Package(raw)
 	return nil
 }
+
 
 // LoadConfig reads and parses a JSON or YAML config file.
 func LoadConfig(path string) (*Config, error) {
