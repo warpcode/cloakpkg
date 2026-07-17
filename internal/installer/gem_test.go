@@ -1,9 +1,9 @@
 package installer
 
 import (
-	"fmt"
 	"cloakpkg/internal/config"
 	"cloakpkg/internal/runner"
+	"fmt"
 	"testing"
 )
 
@@ -143,7 +143,6 @@ func TestGemUpdate(t *testing.T) {
 		t.Errorf("Unexpected command executed: %v", cmd)
 	}
 }
-
 
 func TestGemAddRepositoriesSuccess(t *testing.T) {
 	origExecutor := runner.DefaultExecutor

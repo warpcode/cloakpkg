@@ -1,11 +1,11 @@
 package installer
 
 import (
+	"cloakpkg/internal/config"
+	"cloakpkg/internal/runner"
 	"errors"
 	"reflect"
 	"testing"
-	"cloakpkg/internal/config"
-	"cloakpkg/internal/runner"
 )
 
 func TestBrew_NameAndAvailable(t *testing.T) {
@@ -51,9 +51,9 @@ func TestBrew_AddRepositories(t *testing.T) {
 
 	brew := &Brew{}
 	repos := []config.Repository{
-		{Source: "homebrew/core"},        // Already tapped
-		{Source: "homebrew/cask-fonts"},  // New tap
-		{Source: ""},                     // Empty source should be skipped
+		{Source: "homebrew/core"},       // Already tapped
+		{Source: "homebrew/cask-fonts"}, // New tap
+		{Source: ""},                    // Empty source should be skipped
 	}
 
 	err := brew.AddRepositories(false, false, repos)

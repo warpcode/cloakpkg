@@ -80,7 +80,6 @@ func stripSudo(cmd []string) []string {
 	return cmd
 }
 
-
 func runTestFile(t *testing.T, relativePath string, env mockEnv) [][]string {
 	content, err := os.ReadFile(filepath.Join("../../testdata", relativePath))
 	if err != nil {

@@ -216,7 +216,7 @@ func TestFlatpakAddRepositories(t *testing.T) {
 	f := &Flatpak{}
 	repos := []config.Repository{
 		{Source: "flathub https://dl.flathub.org/repo/flathub.flatpakrepo"}, // space separated
-		{Remote: "custom", Source: "https://custom.org/repo"}, // Explicit Remote and Source
+		{Remote: "custom", Source: "https://custom.org/repo"},               // Explicit Remote and Source
 		{Source: "invalid"}, // invalid source, should return error
 	}
 
