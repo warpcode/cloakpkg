@@ -3,10 +3,96 @@ package installer
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"testing"
+
 	"cloakpkg/internal/config"
 	"cloakpkg/internal/runner"
-	"testing"
 )
+
+func TestGroupPackagesByExtraParams(t *testing.T) {
+	tests := []struct {
+		name          string
+		pkgs          []config.Package
+		expectedKeys  []string
+		expectedGroup map[string][]config.Package
+	}{
+		{
+			name:          "empty packages",
+			pkgs:          []config.Package{},
+			expectedKeys:  nil,
+			expectedGroup: map[string][]config.Package{},
+		},
+		{
+			name: "packages without extra params",
+			pkgs: []config.Package{
+				{Name: "git"},
+				{Name: "curl"},
+			},
+			expectedKeys: []string{""},
+			expectedGroup: map[string][]config.Package{
+				"": {
+					{Name: "git"},
+					{Name: "curl"},
+				},
+			},
+		},
+		{
+			name: "packages with different extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet"}},
+				{Name: "curl", ExtraParams: []string{"--silent"}},
+			},
+			expectedKeys: []string{"--quiet", "--silent"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet": {
+					{Name: "git", ExtraParams: []string{"--quiet"}},
+				},
+				"--silent": {
+					{Name: "curl", ExtraParams: []string{"--silent"}},
+				},
+			},
+		},
+		{
+			name: "packages with same extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet"}},
+				{Name: "curl", ExtraParams: []string{"--quiet"}},
+			},
+			expectedKeys: []string{"--quiet"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet": {
+					{Name: "git", ExtraParams: []string{"--quiet"}},
+					{Name: "curl", ExtraParams: []string{"--quiet"}},
+				},
+			},
+		},
+		{
+			name: "packages with multiple extra params",
+			pkgs: []config.Package{
+				{Name: "git", ExtraParams: []string{"--quiet", "--force"}},
+			},
+			expectedKeys: []string{"--quiet\x00--force"},
+			expectedGroup: map[string][]config.Package{
+				"--quiet\x00--force": {
+					{Name: "git", ExtraParams: []string{"--quiet", "--force"}},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			keys, group := GroupPackagesByExtraParams(tt.pkgs)
+			if !reflect.DeepEqual(keys, tt.expectedKeys) {
+				t.Errorf("GroupPackagesByExtraParams() keys = %v, want %v", keys, tt.expectedKeys)
+			}
+			if !reflect.DeepEqual(group, tt.expectedGroup) {
+				t.Errorf("GroupPackagesByExtraParams() group = %v, want %v", group, tt.expectedGroup)
+			}
+		})
+	}
+}
 
 func TestAptInstall(t *testing.T) {
 	// Save originals to restore at the end
