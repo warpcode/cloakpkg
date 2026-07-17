@@ -296,6 +296,61 @@ func TestCustomInstall(t *testing.T) {
 	}
 }
 
+func TestCustomUninstall(t *testing.T) {
+	origShellExecutor := runner.DefaultShellExecutor
+	origShellCheck := runner.DefaultShellCheckExecutor
+	defer func() {
+		runner.DefaultShellExecutor = origShellExecutor
+		runner.DefaultShellCheckExecutor = origShellCheck
+	}()
+
+	var executedShellCmds []string
+	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
+		executedShellCmds = append(executedShellCmds, cmdStr)
+		if cmdStr == "fail-command" {
+			return errors.New("mock execution error")
+		}
+		return nil
+	}
+
+	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
+		return nil
+	}
+
+	// Case 1: Missing uninstall command
+	cp := config.Provider{
+		Uninstall: "",
+	}
+	err := UninstallCustom(false, false, cp)
+	if err != nil {
+		t.Fatalf("UninstallCustom failed unexpectedly: %v", err)
+	}
+	if len(executedShellCmds) != 0 {
+		t.Errorf("Should not execute any command if uninstall is missing, ran: %v", executedShellCmds)
+	}
+
+	// Case 2: Valid uninstall command
+	cp.Uninstall = "rm -rf test-dir"
+	err = UninstallCustom(false, false, cp)
+	if err != nil {
+		t.Fatalf("UninstallCustom failed unexpectedly: %v", err)
+	}
+	if len(executedShellCmds) != 1 || executedShellCmds[0] != "rm -rf test-dir" {
+		t.Errorf("Expected uninstall command to be executed, got: %v", executedShellCmds)
+	}
+
+	// Case 3: Execution fails
+	cp.Uninstall = "fail-command"
+	err = UninstallCustom(false, false, cp)
+	if err == nil {
+		t.Fatalf("UninstallCustom should have failed but didn't")
+	}
+	expectedErrMsg := "custom uninstall failed: shell command failed: mock execution error"
+	if err.Error() != expectedErrMsg {
+		t.Errorf("Expected error message %q, got %q", expectedErrMsg, err.Error())
+	}
+}
+
 func TestTermuxInstall(t *testing.T) {
 	origExecutor := runner.DefaultExecutor
 	origExists := runner.CommandExists
