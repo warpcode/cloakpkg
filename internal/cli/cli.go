@@ -427,7 +427,7 @@ func runHook(verbose bool, dryRun bool, hookType string, bundleName string, hook
 func executeBuiltinAction(command string, verbose bool, dryRun bool, provName string, pkgs []config.Package, bundles []string, cfg *config.Config, actionFunc func(bool, bool, []config.Package) error) {
 	for _, bName := range bundles {
 		b := cfg.Bundles[bName]
-		if err := runPreHooks(verbose, dryRun, command, provName, bName, b); err != nil {
+		if err := runPreHooks(HookOptions{Verbose: verbose, DryRun: dryRun, Command: command, ProvName: provName, BundleName: bName, Bundle: b}); err != nil {
 			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -453,7 +453,7 @@ func executeBuiltinAction(command string, verbose bool, dryRun bool, provName st
 
 	for _, bName := range bundles {
 		b := cfg.Bundles[bName]
-		if err := runPostHooks(verbose, dryRun, command, provName, bName, b); err != nil {
+		if err := runPostHooks(HookOptions{Verbose: verbose, DryRun: dryRun, Command: command, ProvName: provName, BundleName: bName, Bundle: b}); err != nil {
 			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -461,7 +461,7 @@ func executeBuiltinAction(command string, verbose bool, dryRun bool, provName st
 }
 
 func executeCustomAction(command string, verbose bool, dryRun bool, bundleName string, b config.Bundle, provider config.Provider, actionFunc func(bool, bool, config.Provider) error) {
-	if err := runPreHooks(verbose, dryRun, command, "custom", bundleName, b); err != nil {
+	if err := runPreHooks(HookOptions{Verbose: verbose, DryRun: dryRun, Command: command, ProvName: "custom", BundleName: bundleName, Bundle: b}); err != nil {
 		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -484,84 +484,93 @@ func executeCustomAction(command string, verbose bool, dryRun bool, bundleName s
 		os.Exit(1)
 	}
 
-	if err := runPostHooks(verbose, dryRun, command, "custom", bundleName, b); err != nil {
+	if err := runPostHooks(HookOptions{Verbose: verbose, DryRun: dryRun, Command: command, ProvName: "custom", BundleName: bundleName, Bundle: b}); err != nil {
 		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runPreHooks(verbose bool, dryRun bool, command string, provName string, bundleName string, b config.Bundle) error {
+type HookOptions struct {
+	Verbose    bool
+	DryRun     bool
+	Command    string
+	ProvName   string
+	BundleName string
+	Bundle     config.Bundle
+}
+
+func runPreHooks(opts HookOptions) error {
 	var bundleHook, provHook string
-	switch command {
+	switch opts.Command {
 	case "install":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PreInstall
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PreInstall
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PreInstall
 		}
 	case "uninstall":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PreUninstall
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PreUninstall
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PreUninstall
 		}
 	case "update":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PreUpdate
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PreUpdate
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PreUpdate
 		}
 	}
 
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "pre_"+command, bundleName, bundleHook); err != nil {
+		if err := runHook(opts.Verbose, opts.DryRun, "pre_"+opts.Command, opts.BundleName, bundleHook); err != nil {
 			return err
 		}
 	}
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "pre_"+command+" ("+provName+")", bundleName, provHook); err != nil {
+		if err := runHook(opts.Verbose, opts.DryRun, "pre_"+opts.Command+" ("+opts.ProvName+")", opts.BundleName, provHook); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func runPostHooks(verbose bool, dryRun bool, command string, provName string, bundleName string, b config.Bundle) error {
+func runPostHooks(opts HookOptions) error {
 	var bundleHook, provHook string
-	switch command {
+	switch opts.Command {
 	case "install":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PostInstall
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PostInstall
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PostInstall
 		}
 	case "uninstall":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PostUninstall
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PostUninstall
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PostUninstall
 		}
 	case "update":
-		if b.Hooks != nil {
-			bundleHook = b.Hooks.PostUpdate
+		if opts.Bundle.Hooks != nil {
+			bundleHook = opts.Bundle.Hooks.PostUpdate
 		}
-		if p, ok := b.Providers[provName]; ok && p.Hooks != nil {
+		if p, ok := opts.Bundle.Providers[opts.ProvName]; ok && p.Hooks != nil {
 			provHook = p.Hooks.PostUpdate
 		}
 	}
 
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "post_"+command+" ("+provName+")", bundleName, provHook); err != nil {
+		if err := runHook(opts.Verbose, opts.DryRun, "post_"+opts.Command+" ("+opts.ProvName+")", opts.BundleName, provHook); err != nil {
 			return err
 		}
 	}
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "post_"+command, bundleName, bundleHook); err != nil {
+		if err := runHook(opts.Verbose, opts.DryRun, "post_"+opts.Command, opts.BundleName, bundleHook); err != nil {
 			return err
 		}
 	}
