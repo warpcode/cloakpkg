@@ -297,7 +297,7 @@ func TestTermuxInstall(t *testing.T) {
 	}
 }
 
-func TestCargoInstall(t *testing.T) {
+func TestInstallerCargoInstall(t *testing.T) {
 	origExecutor := runner.DefaultExecutor
 	origExists := runner.CommandExists
 	origCheckOutput := runner.DefaultCheckOutputExecutor
