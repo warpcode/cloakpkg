@@ -65,6 +65,19 @@ func runListInstallers() {
 	fmt.Printf("  %-10s : AVAILABLE (runs custom shell scripts)\n", "custom")
 }
 
+type executionPlan struct {
+	command        string
+	configFile     string
+	cfg            *config.Config
+	verbose        bool
+	dryRun         bool
+	includeTags    map[string]bool
+	excludeTags    map[string]bool
+	bundleNames    []string
+	availableCache map[string]bool
+	registry       map[string]installer.Installer
+}
+
 func runBundleCommand(command string, configFile string) {
 	// Parse subcommand flags
 	fs := flag.NewFlagSet(command, flag.ExitOnError)
@@ -128,245 +141,266 @@ func runBundleCommand(command string, configFile string) {
 		}
 	}
 
+	plan := executionPlan{
+		command:        command,
+		configFile:     configFile,
+		cfg:            cfg,
+		verbose:        *verboseFlag,
+		dryRun:         *dryRunFlag,
+		includeTags:    includeTags,
+		excludeTags:    excludeTags,
+		bundleNames:    bundleNames,
+		availableCache: availableCache,
+		registry:       registry,
+	}
+
 	if command == "check" {
-		fmt.Printf("Evaluating bundles in %s:\n\n", configFile)
-		for _, name := range bundleNames {
-			bundle := cfg.Bundles[name]
-
-			// Apply tag filters
-			if !matchTags(bundle.Tags, includeTags, excludeTags) {
-				continue
-			}
-
-			// Select provider(s) to run/check based on settings priority list
-			var selectedProviders []string
-			priorityList := cfg.Settings.ProviderPriority
-
-			if len(priorityList) > 0 {
-				// Find the first matching available provider
-				for _, provName := range priorityList {
-					provConfig, defined := bundle.Providers[provName]
-					if !defined {
-						continue
-					}
-
-					isAvail := false
-					if provName == "custom" {
-						if provConfig.Detect == "" || installer.CheckCustom(provConfig) {
-							isAvail = true
-						} else {
-							isAvail = true
-						}
-					} else {
-						isAvail = availableCache[provName]
-					}
-
-					if isAvail {
-						selectedProviders = append(selectedProviders, provName)
-						break
-					}
-				}
-			} else {
-				// Priority list empty: execute all defined providers that are available
-				for provName := range bundle.Providers {
-					isAvail := false
-					if provName == "custom" {
-						isAvail = true
-					} else {
-						isAvail = availableCache[provName]
-					}
-
-					if isAvail {
-						selectedProviders = append(selectedProviders, provName)
-					}
-				}
-			}
-
-			fmt.Printf("Bundle: %s\n", name)
-			if bundle.Description != "" {
-				fmt.Printf("  Description: %s\n", bundle.Description)
-			}
-			if len(bundle.Tags) > 0 {
-				fmt.Printf("  Tags:        %s\n", strings.Join(bundle.Tags, ", "))
-			}
-			if len(selectedProviders) == 0 {
-				fmt.Println("  Selected:    NONE (no defined providers are available on this system)")
-			} else {
-				fmt.Printf("  Selected:    %s\n", strings.Join(selectedProviders, ", "))
-				for _, provName := range selectedProviders {
-					provConfig := bundle.Providers[provName]
-					if provName == "custom" {
-						installed := installer.CheckCustom(provConfig)
-						status := "not installed"
-						if installed {
-							status = "already installed"
-						}
-						fmt.Printf("    - custom   (%s)\n", status)
-					} else {
-						inst := registry[provName]
-						fmt.Printf("    - %s packages:\n", provName)
-						for _, p := range provConfig.Packages {
-							status := "not installed"
-							if inst.Installed(p) {
-								status = "installed"
-							}
-							fmt.Printf("        %-15s : %s\n", p.Name, status)
-						}
-					}
-				}
-			}
-			fmt.Println()
-		}
+		handleCheckCommand(plan)
 	} else {
-		// Pass 1: Accumulate built-in packages, repositories, and custom jobs
-		builtinPackages := make(map[string][]config.Package)
-		builtinRepos := make(map[string][]config.Repository)
-		providerBundles := make(map[string][]string)
-		type customJob struct {
-			bundleName string
-			provider   config.Provider
+		handleActionCommand(plan)
+	}
+}
+
+func handleCheckCommand(plan executionPlan) {
+	fmt.Printf("Evaluating bundles in %s:\n\n", plan.configFile)
+	for _, name := range plan.bundleNames {
+		bundle := plan.cfg.Bundles[name]
+
+		// Apply tag filters
+		if !matchTags(bundle.Tags, plan.includeTags, plan.excludeTags) {
+			continue
 		}
-		var customJobs []customJob
 
-		for _, name := range bundleNames {
-			bundle := cfg.Bundles[name]
+		// Select provider(s) to run/check based on settings priority list
+		var selectedProviders []string
+		priorityList := plan.cfg.Settings.ProviderPriority
 
-			// Apply tag filters
-			if !matchTags(bundle.Tags, includeTags, excludeTags) {
-				if *verboseFlag {
-					fmt.Printf("Skipping bundle %q (tag filter mismatch)\n", name)
+		if len(priorityList) > 0 {
+			// Find the first matching available provider
+			for _, provName := range priorityList {
+				provConfig, defined := bundle.Providers[provName]
+				if !defined {
+					continue
 				}
-				continue
-			}
 
-			// Select provider(s) based on settings priority list
-			var selectedProviders []string
-			priorityList := cfg.Settings.ProviderPriority
-
-			if len(priorityList) > 0 {
-				for _, provName := range priorityList {
-					_, defined := bundle.Providers[provName]
-					if !defined {
-						continue
-					}
-
-					isAvail := false
-					if provName == "custom" {
-						isAvail = true
-					} else {
-						isAvail = availableCache[provName]
-					}
-
-					if isAvail {
-						selectedProviders = append(selectedProviders, provName)
-						break
-					}
-				}
-			} else {
-				for provName := range bundle.Providers {
-					isAvail := false
-					if provName == "custom" {
-						isAvail = true
-					} else {
-						isAvail = availableCache[provName]
-					}
-
-					if isAvail {
-						selectedProviders = append(selectedProviders, provName)
-					}
-				}
-			}
-
-			if len(selectedProviders) == 0 {
-				fmt.Printf("Skipping bundle %q: no available providers defined\n", name)
-				continue
-			}
-
-			for _, provName := range selectedProviders {
-				provConfig := bundle.Providers[provName]
+				isAvail := false
 				if provName == "custom" {
-					customJobs = append(customJobs, customJob{bundleName: name, provider: provConfig})
+					if provConfig.Detect == "" || installer.CheckCustom(provConfig) {
+						isAvail = true
+					} else {
+						isAvail = true
+					}
 				} else {
-					builtinPackages[provName] = append(builtinPackages[provName], provConfig.Packages...)
-					builtinRepos[provName] = append(builtinRepos[provName], provConfig.Repositories...)
-
-					// Add to providerBundles, keeping it unique
-					alreadyAdded := false
-					for _, bName := range providerBundles[provName] {
-						if bName == name {
-							alreadyAdded = true
-							break
-						}
-					}
-					if !alreadyAdded {
-						providerBundles[provName] = append(providerBundles[provName], name)
-					}
+					isAvail = plan.availableCache[provName]
 				}
-			}
-		}
 
-		// Determine execution order for built-ins
-		var executionOrder []string
-		priorityList := cfg.Settings.ProviderPriority
-		for _, provName := range priorityList {
-			if len(builtinPackages[provName]) > 0 {
-				executionOrder = append(executionOrder, provName)
-			}
-		}
-		for provName := range builtinPackages {
-			found := false
-			for _, ordered := range executionOrder {
-				if ordered == provName {
-					found = true
+				if isAvail {
+					selectedProviders = append(selectedProviders, provName)
 					break
 				}
 			}
-			if !found {
-				executionOrder = append(executionOrder, provName)
-			}
-		}
+		} else {
+			// Priority list empty: execute all defined providers that are available
+			for provName := range bundle.Providers {
+				isAvail := false
+				if provName == "custom" {
+					isAvail = true
+				} else {
+					isAvail = plan.availableCache[provName]
+				}
 
-		// Run built-in installers in collated execution order
-		for _, provName := range executionOrder {
-			pkgs := builtinPackages[provName]
-			repos := deduplicateRepos(builtinRepos[provName])
-			inst := registry[provName]
-			bundles := providerBundles[provName]
-
-			if len(repos) > 0 && (command == "install" || command == "update" || command == "reinstall") {
-				if err := inst.AddRepositories(*verboseFlag, *dryRunFlag, repos); err != nil {
-					fmt.Fprintf(os.Stderr, "  Error adding repositories for provider %s: %v\n", provName, err)
-					os.Exit(1)
+				if isAvail {
+					selectedProviders = append(selectedProviders, provName)
 				}
 			}
+		}
 
-			switch command {
-			case "install":
-				executeBuiltinAction("install", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Install)
-			case "uninstall":
-				executeBuiltinAction("uninstall", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Uninstall)
-			case "update":
-				executeBuiltinAction("update", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Update)
-			case "reinstall":
-				executeBuiltinAction("uninstall", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Uninstall)
-				executeBuiltinAction("install", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Install)
+		fmt.Printf("Bundle: %s\n", name)
+		if bundle.Description != "" {
+			fmt.Printf("  Description: %s\n", bundle.Description)
+		}
+		if len(bundle.Tags) > 0 {
+			fmt.Printf("  Tags:        %s\n", strings.Join(bundle.Tags, ", "))
+		}
+		if len(selectedProviders) == 0 {
+			fmt.Println("  Selected:    NONE (no defined providers are available on this system)")
+		} else {
+			fmt.Printf("  Selected:    %s\n", strings.Join(selectedProviders, ", "))
+			for _, provName := range selectedProviders {
+				provConfig := bundle.Providers[provName]
+				if provName == "custom" {
+					installed := installer.CheckCustom(provConfig)
+					status := "not installed"
+					if installed {
+						status = "already installed"
+					}
+					fmt.Printf("    - custom   (%s)\n", status)
+				} else {
+					inst := plan.registry[provName]
+					fmt.Printf("    - %s packages:\n", provName)
+					for _, p := range provConfig.Packages {
+						status := "not installed"
+						if inst.Installed(p) {
+							status = "installed"
+						}
+						fmt.Printf("        %-15s : %s\n", p.Name, status)
+					}
+				}
+			}
+		}
+		fmt.Println()
+	}
+}
+
+func handleActionCommand(plan executionPlan) {
+	// Pass 1: Accumulate built-in packages, repositories, and custom jobs
+	builtinPackages := make(map[string][]config.Package)
+	builtinRepos := make(map[string][]config.Repository)
+	providerBundles := make(map[string][]string)
+	type customJob struct {
+		bundleName string
+		provider   config.Provider
+	}
+	var customJobs []customJob
+
+	for _, name := range plan.bundleNames {
+		bundle := plan.cfg.Bundles[name]
+
+		// Apply tag filters
+		if !matchTags(bundle.Tags, plan.includeTags, plan.excludeTags) {
+			if plan.verbose {
+				fmt.Printf("Skipping bundle %q (tag filter mismatch)\n", name)
+			}
+			continue
+		}
+
+		// Select provider(s) based on settings priority list
+		var selectedProviders []string
+		priorityList := plan.cfg.Settings.ProviderPriority
+
+		if len(priorityList) > 0 {
+			for _, provName := range priorityList {
+				_, defined := bundle.Providers[provName]
+				if !defined {
+					continue
+				}
+
+				isAvail := false
+				if provName == "custom" {
+					isAvail = true
+				} else {
+					isAvail = plan.availableCache[provName]
+				}
+
+				if isAvail {
+					selectedProviders = append(selectedProviders, provName)
+					break
+				}
+			}
+		} else {
+			for provName := range bundle.Providers {
+				isAvail := false
+				if provName == "custom" {
+					isAvail = true
+				} else {
+					isAvail = plan.availableCache[provName]
+				}
+
+				if isAvail {
+					selectedProviders = append(selectedProviders, provName)
+				}
 			}
 		}
 
-		// Run custom jobs
-		for _, job := range customJobs {
-			b := cfg.Bundles[job.bundleName]
-			switch command {
-			case "install":
-				executeCustomAction("install", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.InstallCustom)
-			case "uninstall":
-				executeCustomAction("uninstall", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UninstallCustom)
-			case "update":
-				executeCustomAction("update", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UpdateCustom)
-			case "reinstall":
-				executeCustomAction("uninstall", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UninstallCustom)
-				executeCustomAction("install", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.InstallCustom)
+		if len(selectedProviders) == 0 {
+			fmt.Printf("Skipping bundle %q: no available providers defined\n", name)
+			continue
+		}
+
+		for _, provName := range selectedProviders {
+			provConfig := bundle.Providers[provName]
+			if provName == "custom" {
+				customJobs = append(customJobs, customJob{bundleName: name, provider: provConfig})
+			} else {
+				builtinPackages[provName] = append(builtinPackages[provName], provConfig.Packages...)
+				builtinRepos[provName] = append(builtinRepos[provName], provConfig.Repositories...)
+
+				// Add to providerBundles, keeping it unique
+				alreadyAdded := false
+				for _, bName := range providerBundles[provName] {
+					if bName == name {
+						alreadyAdded = true
+						break
+					}
+				}
+				if !alreadyAdded {
+					providerBundles[provName] = append(providerBundles[provName], name)
+				}
 			}
+		}
+	}
+
+	// Determine execution order for built-ins
+	var executionOrder []string
+	priorityList := plan.cfg.Settings.ProviderPriority
+	for _, provName := range priorityList {
+		if len(builtinPackages[provName]) > 0 {
+			executionOrder = append(executionOrder, provName)
+		}
+	}
+	for provName := range builtinPackages {
+		found := false
+		for _, ordered := range executionOrder {
+			if ordered == provName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			executionOrder = append(executionOrder, provName)
+		}
+	}
+
+	// Run built-in installers in collated execution order
+	for _, provName := range executionOrder {
+		pkgs := builtinPackages[provName]
+		repos := deduplicateRepos(builtinRepos[provName])
+		inst := plan.registry[provName]
+		bundles := providerBundles[provName]
+
+		if len(repos) > 0 && (plan.command == "install" || plan.command == "update" || plan.command == "reinstall") {
+			if err := inst.AddRepositories(plan.verbose, plan.dryRun, repos); err != nil {
+				fmt.Fprintf(os.Stderr, "  Error adding repositories for provider %s: %v\n", provName, err)
+				os.Exit(1)
+			}
+		}
+
+		switch plan.command {
+		case "install":
+			executeBuiltinAction("install", plan.verbose, plan.dryRun, provName, pkgs, bundles, plan.cfg, inst.Install)
+		case "uninstall":
+			executeBuiltinAction("uninstall", plan.verbose, plan.dryRun, provName, pkgs, bundles, plan.cfg, inst.Uninstall)
+		case "update":
+			executeBuiltinAction("update", plan.verbose, plan.dryRun, provName, pkgs, bundles, plan.cfg, inst.Update)
+		case "reinstall":
+			executeBuiltinAction("uninstall", plan.verbose, plan.dryRun, provName, pkgs, bundles, plan.cfg, inst.Uninstall)
+			executeBuiltinAction("install", plan.verbose, plan.dryRun, provName, pkgs, bundles, plan.cfg, inst.Install)
+		}
+	}
+
+	// Run custom jobs
+	for _, job := range customJobs {
+		b := plan.cfg.Bundles[job.bundleName]
+		switch plan.command {
+		case "install":
+			executeCustomAction("install", plan.verbose, plan.dryRun, job.bundleName, b, job.provider, installer.InstallCustom)
+		case "uninstall":
+			executeCustomAction("uninstall", plan.verbose, plan.dryRun, job.bundleName, b, job.provider, installer.UninstallCustom)
+		case "update":
+			executeCustomAction("update", plan.verbose, plan.dryRun, job.bundleName, b, job.provider, installer.UpdateCustom)
+		case "reinstall":
+			executeCustomAction("uninstall", plan.verbose, plan.dryRun, job.bundleName, b, job.provider, installer.UninstallCustom)
+			executeCustomAction("install", plan.verbose, plan.dryRun, job.bundleName, b, job.provider, installer.InstallCustom)
 		}
 	}
 }
