@@ -110,41 +110,109 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunSudo(t *testing.T) {
-	origExecutor := DefaultExecutor
-	defer func() { DefaultExecutor = origExecutor }()
+	// Save and restore global variables
+	originalExecutor := DefaultExecutor
+	originalGeteuid := osGeteuid
+	defer func() {
+		DefaultExecutor = originalExecutor
+		osGeteuid = originalGeteuid
+	}()
 
-	var lastBin string
-	var lastArgs []string
-
-	DefaultExecutor = func(verbose bool, bin string, args ...string) error {
-		lastBin = bin
-		lastArgs = args
-		return nil
+	tests := []struct {
+		name         string
+		geteuid      int
+		dryRun       bool
+		verbose      bool
+		bin          string
+		args         []string
+		wantExecuted bool
+		wantBin      string
+		wantArgs     []string
+	}{
+		{
+			name:         "non-root user prepends sudo on non-windows",
+			geteuid:      1000,
+			dryRun:       false,
+			verbose:      false,
+			bin:          "mycmd",
+			args:         []string{"arg1", "arg2"},
+			wantExecuted: true,
+			wantBin:      "sudo",
+			wantArgs:     []string{"mycmd", "arg1", "arg2"},
+		},
+		{
+			name:         "root user runs directly",
+			geteuid:      0,
+			dryRun:       false,
+			verbose:      false,
+			bin:          "mycmd",
+			args:         []string{"arg1", "arg2"},
+			wantExecuted: true,
+			wantBin:      "mycmd",
+			wantArgs:     []string{"arg1", "arg2"},
+		},
+		{
+			name:         "dryRun mode does not execute",
+			geteuid:      1000,
+			dryRun:       true,
+			verbose:      false,
+			bin:          "mycmd",
+			args:         []string{"arg1"},
+			wantExecuted: false,
+		},
 	}
 
-	// In test environments, we might be root or not root, and we might be on Windows or not.
-	// Since RunSudo checks OS and uid to decide if it should prepend sudo,
-	// we will just execute it and check if it did prepend sudo or not.
-	// We can't strictly enforce one outcome without mocking os.Geteuid, which isn't mocked in exec.go.
-	// But we can check that it either executes the original command or prepends sudo.
-	err := RunSudo(false, false, "echo", "hello")
-	if err != nil {
-		t.Errorf("expected RunSudo to succeed, got %v", err)
-	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var executedBin string
+			var executedArgs []string
+			executed := false
 
-	// It either ran "echo hello" or "sudo echo hello"
-	if lastBin != "echo" && lastBin != "sudo" {
-		t.Errorf("expected bin to be 'echo' or 'sudo', got %v", lastBin)
-	}
+			DefaultExecutor = func(verbose bool, bin string, args ...string) error {
+				executed = true
+				executedBin = bin
+				executedArgs = append([]string{}, args...)
+				return nil
+			}
 
-	if lastBin == "sudo" {
-		if len(lastArgs) != 2 || lastArgs[0] != "echo" || lastArgs[1] != "hello" {
-			t.Errorf("expected sudo args to be ['echo', 'hello'], got %v", lastArgs)
-		}
-	} else if lastBin == "echo" {
-		if len(lastArgs) != 1 || lastArgs[0] != "hello" {
-			t.Errorf("expected args to be ['hello'], got %v", lastArgs)
-		}
+			osGeteuid = func() int { return tc.geteuid }
+
+			err := RunSudo(tc.verbose, tc.dryRun, tc.bin, tc.args...)
+			if err != nil {
+				t.Fatalf("RunSudo(%v, %v, %q, %v) unexpected error: %v", tc.verbose, tc.dryRun, tc.bin, tc.args, err)
+			}
+
+			if executed != tc.wantExecuted {
+				t.Errorf("RunSudo(%v, %v, %q, %v) executed = %v, want %v", tc.verbose, tc.dryRun, tc.bin, tc.args, executed, tc.wantExecuted)
+			}
+
+			if !executed {
+				return
+			}
+
+			// Adjust expectations for Windows
+			expectedBin := tc.wantBin
+			expectedArgs := tc.wantArgs
+			if runtime.GOOS == "windows" {
+				expectedBin = tc.bin
+				expectedArgs = tc.args
+			}
+
+			if executedBin != expectedBin {
+				t.Errorf("RunSudo(%v, %v, %q, %v) bin = %q, want %q", tc.verbose, tc.dryRun, tc.bin, tc.args, executedBin, expectedBin)
+			}
+
+			if len(executedArgs) != len(expectedArgs) {
+				t.Errorf("RunSudo(%v, %v, %q, %v) args length = %d, want %d (got %v, want %v)", tc.verbose, tc.dryRun, tc.bin, tc.args, len(executedArgs), len(expectedArgs), executedArgs, expectedArgs)
+				return
+			}
+
+			for i := range executedArgs {
+				if executedArgs[i] != expectedArgs[i] {
+					t.Errorf("RunSudo(%v, %v, %q, %v) args[%d] = %q, want %q (got %v, want %v)", tc.verbose, tc.dryRun, tc.bin, tc.args, i, executedArgs[i], expectedArgs[i], executedArgs, expectedArgs)
+				}
+			}
+		})
 	}
 }
 

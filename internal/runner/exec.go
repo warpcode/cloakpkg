@@ -53,6 +53,9 @@ var DefaultShellCheckExecutor = func(cmdStr string) error {
 	return cmd.Run()
 }
 
+// osGeteuid is exposed as a variable to allow mocking in tests.
+var osGeteuid = os.Geteuid
+
 // Run executes a command with standard stdout/stderr redirection.
 func Run(verbose bool, dryRun bool, bin string, args ...string) error {
 	if dryRun {
@@ -72,7 +75,7 @@ func Run(verbose bool, dryRun bool, bin string, args ...string) error {
 
 // RunSudo executes a command prefixed with sudo if not running as root.
 func RunSudo(verbose bool, dryRun bool, bin string, args ...string) error {
-	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+	if runtime.GOOS == "windows" || osGeteuid() == 0 {
 		return Run(verbose, dryRun, bin, args...)
 	}
 
