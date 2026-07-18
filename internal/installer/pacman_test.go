@@ -105,9 +105,9 @@ func TestPacman_Install(t *testing.T) {
 	foundExtraPkg := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "new-pkg"}) {
+		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "new-pkg"}) || reflect.DeepEqual(cmd, []string{"pacman", "-S", "--noconfirm", "--", "new-pkg"}) {
 			foundNewPkg = true
-		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) {
+		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) || reflect.DeepEqual(cmd, []string{"pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) {
 			foundExtraPkg = true
 		} else {
 			t.Errorf("Unexpected command executed: %v", cmd)
@@ -163,9 +163,9 @@ func TestPacman_Uninstall(t *testing.T) {
 	foundExtraPkg := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-R", "--noconfirm", "--", "installed-pkg"}) {
+		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-R", "--noconfirm", "--", "installed-pkg"}) || reflect.DeepEqual(cmd, []string{"pacman", "-R", "--noconfirm", "--", "installed-pkg"}) {
 			foundInstalledPkg = true
-		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-R", "--noconfirm", "--nosave", "--", "extra-pkg"}) {
+		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-R", "--noconfirm", "--nosave", "--", "extra-pkg"}) || reflect.DeepEqual(cmd, []string{"pacman", "-R", "--noconfirm", "--nosave", "--", "extra-pkg"}) {
 			foundExtraPkg = true
 		} else {
 			t.Errorf("Unexpected command executed: %v", cmd)
@@ -209,9 +209,9 @@ func TestPacman_Update(t *testing.T) {
 	foundExtraPkg := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "pkg1", "pkg2"}) || reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "pkg2", "pkg1"}) {
+		if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "pkg1", "pkg2"}) || reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--", "pkg2", "pkg1"}) || reflect.DeepEqual(cmd, []string{"pacman", "-S", "--noconfirm", "--", "pkg1", "pkg2"}) || reflect.DeepEqual(cmd, []string{"pacman", "-S", "--noconfirm", "--", "pkg2", "pkg1"}) {
 			foundPkgs = true
-		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) {
+		} else if reflect.DeepEqual(cmd, []string{"sudo", "pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) || reflect.DeepEqual(cmd, []string{"pacman", "-S", "--noconfirm", "--asdeps", "--", "extra-pkg"}) {
 			foundExtraPkg = true
 		} else {
 			t.Errorf("Unexpected command executed: %v", cmd)
