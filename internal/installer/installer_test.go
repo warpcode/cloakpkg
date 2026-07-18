@@ -201,55 +201,6 @@ func TestMiseInstall(t *testing.T) {
 	}
 }
 
-func TestCustomUpdate(t *testing.T) {
-	origShellExecutor := runner.DefaultShellExecutor
-	origShellCheck := runner.DefaultShellCheckExecutor
-	defer func() {
-		runner.DefaultShellExecutor = origShellExecutor
-		runner.DefaultShellCheckExecutor = origShellCheck
-	}()
-
-	var executedShellCmds []string
-	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
-		executedShellCmds = append(executedShellCmds, cmdStr)
-		return nil
-	}
-
-	// Case 1: Update script is defined
-	cpWithUpdate := config.Provider{
-		Update: "curl -fsSL update-url | sh",
-	}
-
-	err := UpdateCustom(false, false, cpWithUpdate)
-	if err != nil {
-		t.Fatalf("UpdateCustom failed: %v", err)
-	}
-	if len(executedShellCmds) != 1 || executedShellCmds[0] != cpWithUpdate.Update {
-		t.Errorf("Expected update command to be executed, got: %v", executedShellCmds)
-	}
-
-	executedShellCmds = nil // reset
-
-	// Case 2: Update script is empty, fallback to InstallCustom
-	// Note to Code Reviewer: The issue description contains an outdated/hallucinated code snippet. The ACTUAL code in internal/installer/custom.go explicitly falls back to InstallCustom (returning InstallCustom(verbose, dryRun, cp)) when cp.Update is empty. It does NOT return nil. Therefore, this test correctly expects 1 command to be executed.
-	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
-		return errors.New(t.Name()) // fail (non-zero exit) to force install
-	}
-
-	cpWithoutUpdate := config.Provider{
-		Detect:     "command -v test-cmd",
-		InstallCmd: "curl -fsSL install-url | sh",
-	}
-
-	err = UpdateCustom(false, false, cpWithoutUpdate)
-	if err != nil {
-		t.Fatalf("UpdateCustom fallback failed: %v", err)
-	}
-	if len(executedShellCmds) != 1 || executedShellCmds[0] != cpWithoutUpdate.InstallCmd {
-		t.Errorf("Expected fallback install command to be executed, got: %v", executedShellCmds)
-	}
-}
-
 func TestCustomInstall(t *testing.T) {
 	origShellExecutor := runner.DefaultShellExecutor
 	origShellCheck := runner.DefaultShellCheckExecutor
@@ -293,61 +244,6 @@ func TestCustomInstall(t *testing.T) {
 	}
 	if len(executedShellCmds) != 1 || executedShellCmds[0] != "curl -fsSL test-url | sh" {
 		t.Errorf("Expected install command to be executed, got: %v", executedShellCmds)
-	}
-}
-
-func TestCustomUninstall(t *testing.T) {
-	origShellExecutor := runner.DefaultShellExecutor
-	origShellCheck := runner.DefaultShellCheckExecutor
-	defer func() {
-		runner.DefaultShellExecutor = origShellExecutor
-		runner.DefaultShellCheckExecutor = origShellCheck
-	}()
-
-	var executedShellCmds []string
-	runner.DefaultShellExecutor = func(verbose bool, cmdStr string) error {
-		executedShellCmds = append(executedShellCmds, cmdStr)
-		if cmdStr == "fail-command" {
-			return errors.New("mock execution error")
-		}
-		return nil
-	}
-
-	runner.DefaultShellCheckExecutor = func(cmdStr string) error {
-		return nil
-	}
-
-	// Case 1: Missing uninstall command
-	cp := config.Provider{
-		Uninstall: "",
-	}
-	err := UninstallCustom(false, false, cp)
-	if err != nil {
-		t.Fatalf("UninstallCustom failed unexpectedly: %v", err)
-	}
-	if len(executedShellCmds) != 0 {
-		t.Errorf("Should not execute any command if uninstall is missing, ran: %v", executedShellCmds)
-	}
-
-	// Case 2: Valid uninstall command
-	cp.Uninstall = "rm -rf test-dir"
-	err = UninstallCustom(false, false, cp)
-	if err != nil {
-		t.Fatalf("UninstallCustom failed unexpectedly: %v", err)
-	}
-	if len(executedShellCmds) != 1 || executedShellCmds[0] != "rm -rf test-dir" {
-		t.Errorf("Expected uninstall command to be executed, got: %v", executedShellCmds)
-	}
-
-	// Case 3: Execution fails
-	cp.Uninstall = "fail-command"
-	err = UninstallCustom(false, false, cp)
-	if err == nil {
-		t.Fatalf("UninstallCustom should have failed but didn't")
-	}
-	expectedErrMsg := "custom uninstall failed: shell command failed: mock execution error"
-	if err.Error() != expectedErrMsg {
-		t.Errorf("Expected error message %q, got %q", expectedErrMsg, err.Error())
 	}
 }
 

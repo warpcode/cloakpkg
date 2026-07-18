@@ -342,100 +342,30 @@ func runBundleCommand(command string, configFile string) {
 
 			switch command {
 			case "install":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "install", provName, bundles, cfg,
-					fmt.Sprintf("Installing packages for provider %q...", provName),
-					func() error {
-						if err := inst.Install(*verboseFlag, *dryRunFlag, pkgs); err != nil {
-							return fmt.Errorf("Error installing built-in provider %s: %w", provName, err)
-						}
-						return nil
-					})
+				executeBuiltinAction("install", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Install)
 			case "uninstall":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "uninstall", provName, bundles, cfg,
-					fmt.Sprintf("Uninstalling packages for provider %q...", provName),
-					func() error {
-						if err := inst.Uninstall(*verboseFlag, *dryRunFlag, pkgs); err != nil {
-							return fmt.Errorf("Error uninstalling built-in provider %s: %w", provName, err)
-						}
-						return nil
-					})
+				executeBuiltinAction("uninstall", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Uninstall)
 			case "update":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "update", provName, bundles, cfg,
-					fmt.Sprintf("Updating packages for provider %q...", provName),
-					func() error {
-						if err := inst.Update(*verboseFlag, *dryRunFlag, pkgs); err != nil {
-							return fmt.Errorf("Error updating built-in provider %s: %w", provName, err)
-						}
-						return nil
-					})
+				executeBuiltinAction("update", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Update)
 			case "reinstall":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "uninstall", provName, bundles, cfg,
-					fmt.Sprintf("Reinstalling packages for provider %q...", provName),
-					func() error {
-						if err := inst.Uninstall(*verboseFlag, *dryRunFlag, pkgs); err != nil {
-							return fmt.Errorf("Error uninstalling built-in provider %s: %w", provName, err)
-						}
-						return nil
-					})
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "install", provName, bundles, cfg,
-					"", // Reinstall already printed the action above
-					func() error {
-						if err := inst.Install(*verboseFlag, *dryRunFlag, pkgs); err != nil {
-							return fmt.Errorf("Error installing built-in provider %s: %w", provName, err)
-						}
-						return nil
-					})
+				executeBuiltinAction("uninstall", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Uninstall)
+				executeBuiltinAction("install", *verboseFlag, *dryRunFlag, provName, pkgs, bundles, cfg, inst.Install)
 			}
 		}
 
 		// Run custom jobs
 		for _, job := range customJobs {
-			bundles := []string{job.bundleName}
+			b := cfg.Bundles[job.bundleName]
 			switch command {
 			case "install":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "install", "custom", bundles, cfg,
-					fmt.Sprintf("Installing custom provider for bundle %q...", job.bundleName),
-					func() error {
-						if err := installer.InstallCustom(*verboseFlag, *dryRunFlag, job.provider); err != nil {
-							return fmt.Errorf("Error installing custom provider: %w", err)
-						}
-						return nil
-					})
+				executeCustomAction("install", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.InstallCustom)
 			case "uninstall":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "uninstall", "custom", bundles, cfg,
-					fmt.Sprintf("Uninstalling custom provider for bundle %q...", job.bundleName),
-					func() error {
-						if err := installer.UninstallCustom(*verboseFlag, *dryRunFlag, job.provider); err != nil {
-							return fmt.Errorf("Error uninstalling custom provider: %w", err)
-						}
-						return nil
-					})
+				executeCustomAction("uninstall", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UninstallCustom)
 			case "update":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "update", "custom", bundles, cfg,
-					fmt.Sprintf("Updating custom provider for bundle %q...", job.bundleName),
-					func() error {
-						if err := installer.UpdateCustom(*verboseFlag, *dryRunFlag, job.provider); err != nil {
-							return fmt.Errorf("Error updating custom provider: %w", err)
-						}
-						return nil
-					})
+				executeCustomAction("update", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UpdateCustom)
 			case "reinstall":
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "uninstall", "custom", bundles, cfg,
-					fmt.Sprintf("Reinstalling custom provider for bundle %q...", job.bundleName),
-					func() error {
-						if err := installer.UninstallCustom(*verboseFlag, *dryRunFlag, job.provider); err != nil {
-							return fmt.Errorf("Error uninstalling custom provider: %w", err)
-						}
-						return nil
-					})
-				executeProviderPhase(*verboseFlag, *dryRunFlag, "install", "custom", bundles, cfg,
-					"", // Reinstall already printed the action above
-					func() error {
-						if err := installer.InstallCustom(*verboseFlag, *dryRunFlag, job.provider); err != nil {
-							return fmt.Errorf("Error installing custom provider: %w", err)
-						}
-						return nil
-					})
+				executeCustomAction("uninstall", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.UninstallCustom)
+				executeCustomAction("install", *verboseFlag, *dryRunFlag, job.bundleName, b, job.provider, installer.InstallCustom)
 			}
 		}
 	}
@@ -468,38 +398,6 @@ func matchTags(bundleTags []string, includeTags, excludeTags map[string]bool) bo
 	return true
 }
 
-func executeProviderPhase(
-	verbose, dryRun bool,
-	phase string,
-	provName string,
-	bundles []string,
-	cfg *config.Config,
-	actionMsg string,
-	action func() error,
-) {
-	for _, bName := range bundles {
-		b := cfg.Bundles[bName]
-		if err := runPreHooks(verbose, dryRun, phase, provName, bName, b); err != nil {
-			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
-			os.Exit(1)
-		}
-	}
-
-	fmt.Printf("%s\n", actionMsg)
-	if err := action(); err != nil {
-		fmt.Fprintf(os.Stderr, "  %v\n", err)
-		os.Exit(1)
-	}
-
-	for _, bName := range bundles {
-		b := cfg.Bundles[bName]
-		if err := runPostHooks(verbose, dryRun, phase, provName, bName, b); err != nil {
-			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
-			os.Exit(1)
-		}
-	}
-}
-
 func deduplicateRepos(repos []config.Repository) []config.Repository {
 	seen := make(map[string]bool)
 	var unique []config.Repository
@@ -524,6 +422,72 @@ func runHook(verbose bool, dryRun bool, hookType string, bundleName string, hook
 		return fmt.Errorf("%s hook failed for bundle %q: %w", hookType, bundleName, err)
 	}
 	return nil
+}
+
+func executeBuiltinAction(command string, verbose bool, dryRun bool, provName string, pkgs []config.Package, bundles []string, cfg *config.Config, actionFunc func(bool, bool, []config.Package) error) {
+	for _, bName := range bundles {
+		b := cfg.Bundles[bName]
+		if err := runPreHooks(verbose, dryRun, command, provName, bName, b); err != nil {
+			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	actionStr := ""
+	switch command {
+	case "install":
+		actionStr = "Installing"
+	case "uninstall":
+		actionStr = "Uninstalling"
+	case "update":
+		actionStr = "Updating"
+	default:
+		actionStr = "Processing"
+	}
+	fmt.Printf("%s packages for provider %q...\n", actionStr, provName)
+
+	if err := actionFunc(verbose, dryRun, pkgs); err != nil {
+		fmt.Fprintf(os.Stderr, "  Error %s built-in provider %s: %v\n", strings.ToLower(actionStr), provName, err)
+		os.Exit(1)
+	}
+
+	for _, bName := range bundles {
+		b := cfg.Bundles[bName]
+		if err := runPostHooks(verbose, dryRun, command, provName, bName, b); err != nil {
+			fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
+			os.Exit(1)
+		}
+	}
+}
+
+func executeCustomAction(command string, verbose bool, dryRun bool, bundleName string, b config.Bundle, provider config.Provider, actionFunc func(bool, bool, config.Provider) error) {
+	if err := runPreHooks(verbose, dryRun, command, "custom", bundleName, b); err != nil {
+		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	actionStr := ""
+	switch command {
+	case "install":
+		actionStr = "Installing"
+	case "uninstall":
+		actionStr = "Uninstalling"
+	case "update":
+		actionStr = "Updating"
+	default:
+		actionStr = "Processing"
+	}
+	fmt.Printf("%s custom provider for bundle %q...\n", actionStr, bundleName)
+
+	if err := actionFunc(verbose, dryRun, provider); err != nil {
+		fmt.Fprintf(os.Stderr, "  Error %s custom provider: %v\n", strings.ToLower(actionStr), err)
+		os.Exit(1)
+	}
+
+	if err := runPostHooks(verbose, dryRun, command, "custom", bundleName, b); err != nil {
+		fmt.Fprintf(os.Stderr, "  Error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runPreHooks(verbose bool, dryRun bool, command string, provName string, bundleName string, b config.Bundle) error {
@@ -553,12 +517,12 @@ func runPreHooks(verbose bool, dryRun bool, command string, provName string, bun
 	}
 
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "pre_" + command, bundleName, bundleHook); err != nil {
+		if err := runHook(verbose, dryRun, "pre_"+command, bundleName, bundleHook); err != nil {
 			return err
 		}
 	}
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "pre_" + command + " (" + provName + ")", bundleName, provHook); err != nil {
+		if err := runHook(verbose, dryRun, "pre_"+command+" ("+provName+")", bundleName, provHook); err != nil {
 			return err
 		}
 	}
@@ -592,12 +556,12 @@ func runPostHooks(verbose bool, dryRun bool, command string, provName string, bu
 	}
 
 	if provHook != "" {
-		if err := runHook(verbose, dryRun, "post_" + command + " (" + provName + ")", bundleName, provHook); err != nil {
+		if err := runHook(verbose, dryRun, "post_"+command+" ("+provName+")", bundleName, provHook); err != nil {
 			return err
 		}
 	}
 	if bundleHook != "" {
-		if err := runHook(verbose, dryRun, "post_" + command, bundleName, bundleHook); err != nil {
+		if err := runHook(verbose, dryRun, "post_"+command, bundleName, bundleHook); err != nil {
 			return err
 		}
 	}
