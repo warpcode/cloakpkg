@@ -108,16 +108,22 @@ func TestZypperInstall(t *testing.T) {
 
 	// Order of keys might vary since it relies on a map in GroupPackagesByExtraParams
 	// We'll just check that both commands are present.
-	expected1 := []string{"sudo", "zypper", "install", "-y", "curl"}
-	expected2 := []string{"sudo", "zypper", "install", "-y", "--no-recommends", "wget"}
+	expected1 := []string{"zypper", "install", "-y", "curl"}
+	expected2 := []string{"zypper", "install", "-y", "--no-recommends", "wget"}
 
 	found1 := false
 	found2 := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, expected1) {
+		// RunSudo prepends "sudo" if not root/windows. We strip it for easy comparison.
+		actual := cmd
+		if len(actual) > 0 && actual[0] == "sudo" {
+			actual = actual[1:]
+		}
+
+		if reflect.DeepEqual(actual, expected1) {
 			found1 = true
-		} else if reflect.DeepEqual(cmd, expected2) {
+		} else if reflect.DeepEqual(actual, expected2) {
 			found2 = true
 		}
 	}
@@ -163,16 +169,21 @@ func TestZypperUninstall(t *testing.T) {
 		t.Fatalf("Expected 2 commands executed, got %d", len(executedCmds))
 	}
 
-	expected1 := []string{"sudo", "zypper", "remove", "-y", "curl"}
-	expected2 := []string{"sudo", "zypper", "remove", "-y", "--clean-deps", "wget"}
+	expected1 := []string{"zypper", "remove", "-y", "curl"}
+	expected2 := []string{"zypper", "remove", "-y", "--clean-deps", "wget"}
 
 	found1 := false
 	found2 := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, expected1) {
+		actual := cmd
+		if len(actual) > 0 && actual[0] == "sudo" {
+			actual = actual[1:]
+		}
+
+		if reflect.DeepEqual(actual, expected1) {
 			found1 = true
-		} else if reflect.DeepEqual(cmd, expected2) {
+		} else if reflect.DeepEqual(actual, expected2) {
 			found2 = true
 		}
 	}
@@ -212,16 +223,21 @@ func TestZypperUpdate(t *testing.T) {
 		t.Fatalf("Expected 2 commands executed, got %d", len(executedCmds))
 	}
 
-	expected1 := []string{"sudo", "zypper", "update", "-y", "curl"}
-	expected2 := []string{"sudo", "zypper", "update", "-y", "--repo=updates", "wget"}
+	expected1 := []string{"zypper", "update", "-y", "curl"}
+	expected2 := []string{"zypper", "update", "-y", "--repo=updates", "wget"}
 
 	found1 := false
 	found2 := false
 
 	for _, cmd := range executedCmds {
-		if reflect.DeepEqual(cmd, expected1) {
+		actual := cmd
+		if len(actual) > 0 && actual[0] == "sudo" {
+			actual = actual[1:]
+		}
+
+		if reflect.DeepEqual(actual, expected1) {
 			found1 = true
-		} else if reflect.DeepEqual(cmd, expected2) {
+		} else if reflect.DeepEqual(actual, expected2) {
 			found2 = true
 		}
 	}
