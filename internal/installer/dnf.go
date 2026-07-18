@@ -85,6 +85,10 @@ func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 			} else {
 				files, err := os.ReadDir("/etc/yum.repos.d")
 				if err == nil {
+					var parts []string
+					if isCopr {
+						parts = strings.Split(cleanSource, "/")
+					}
 					for _, file := range files {
 						if file.IsDir() || !strings.HasSuffix(file.Name(), ".repo") {
 							continue
@@ -92,7 +96,6 @@ func (d *Dnf) AddRepositories(verbose bool, dryRun bool, repos []config.Reposito
 						filePath := filepath.Join("/etc/yum.repos.d", file.Name())
 
 						if isCopr {
-							parts := strings.Split(cleanSource, "/")
 							match := true
 							for _, part := range parts {
 								part = strings.TrimSpace(part)
